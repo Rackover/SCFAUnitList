@@ -51,8 +51,8 @@ This project is licensed under the Beerware license. See the [LICENSE](LICENSE) 
 
 ## Acknowledgments
 
-* This database uses some sprites and logo from [Spooky's DB](https://github.com/spooky/unitdb) which was a similar project : but all the code for this one db has been made from scratch by me (rackover).
-* Also, all the sprites and logos and fonts used in this project either come directly from the game files, or are vanilla Windows fonts.
+* All the code for this one db has been made from scratch using nothing more than my bare hands : no code have been taken neither from  [Spooky's DB](https://github.com/spooky/unitdb), nor from the *official* unitDB.
+* All the sprites and logos and fonts used in this project either come directly from the game files, or are vanilla Windows fonts (except for the FA Forever logo, used as a favicon). But I must credit [Spooky's DB](https://github.com/spooky/unitdb) nevertheless, as I was too lazy to rip some game textures and got them directly from Spooky's git.
 
 ## Todo list
 
