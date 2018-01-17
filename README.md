@@ -56,4 +56,4 @@ This project is licensed under the Beerware license. See the [LICENSE](LICENSE) 
 
 ## Todo list
 
-For now the thing loads data from a [UNIT.JSON](UNIT.JSON) file, which needs to be generated from the game blueprints using tools from Spooky's repository. Next thing to do is to make them load directly from the game files ! Which should be a big thing. We'll see.
+For now the thing loads data from a [DATA/UNITS_COMPLETE.JSON](UNIT.JSON) file, which needs to be generated from the game blueprints using tools from Spooky's repository. Next thing to do is to make them load directly from the game files ! Which should be a big thing. We'll see.
