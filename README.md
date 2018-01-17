@@ -1,5 +1,9 @@
 # SCFA/FAF Unit List
 This project aims to create a webpage that can load dynamically Supreme Commander's unit list and display them all with their own stats.
+At the moment (17/01/2018), two other databases exist :
+- The "official" one, which is very old and outdated.
+- [Spooky's database](https://github.com/spooky/unitdb), up to date, but I personally don't like the layout of it. 
+So I've made my own !
 
 ### Prerequisites
 
