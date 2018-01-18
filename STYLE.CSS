@@ -45,7 +45,13 @@ button{
     visibility: visible;
 }
 /* END OF */
-
+.blueprintLink{
+	text-decoration:none;
+}
+.blueprintLink:hover{
+	text-decoration:underline;
+	font-weight:bold;
+}
 .categoryName{
 	color:#EEEEEE;
 	background-color:#303030;
@@ -77,6 +83,9 @@ input[type=checkbox]{
 .unitSelector:checked + .unit{
 	background-color:black;
 }
+.unitName{
+	margin-left:4px;
+}
 .unit:hover{
 	cursor: pointer;
 }
@@ -105,7 +114,7 @@ input[type=checkbox]{
 }
 #comparatorPopup:hover{
 	color:white;
-	background-color:darkgrey;
+	background:linear-gradient(to bottom, #333333, darkgrey, #333333);
 }
 .unitSelector{
 	margin-right:8px;

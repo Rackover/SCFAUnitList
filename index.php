@@ -93,8 +93,28 @@
 		}
 	</script>
 	<?php	
+		
+	//SETTINGS LOAD
 	
-	$dataString = file_get_contents("DATA/UNITS_COMPLETE.JSON");
+	$settingsString = "CONFIG/SETTINGS.JSON";
+	$settings = array(
+		"lastUpdate"=>time(),
+		"every"=>86400
+	);
+	if (file_exists($settingsString)){
+		$settings = json_decode(file_get_contents($settingsString), true);
+	}
+
+	if (($settings["lastUpdate"] + $settings["every"]) < time()){
+		include("update.php");
+		$settings["lastUpdate"] = time();
+	}
+	file_put_contents($settingsString, json_encode($settings));
+	
+	
+	//END OF
+		
+	$dataString = file_get_contents("DATA/FALLBACK.JSON");
 	$dataJS = json_decode($dataString);
 	
 	/////////////////////////////////
@@ -177,9 +197,11 @@
 					}					
 					
 					//TITLE BAND
-						echo '<div style="position:relative;">';
-						echo getUnitTitle($thisUnit);
-						echo '<button style="font-weight:bold;
+						echo '<div style="position:relative;">
+								<div style="margin-right:27px;">
+									'.getUnitTitle($thisUnit).'
+								</div>
+								<button style="font-weight:bold;
 											color:red;
 											background-color:black;
 											position:absolute;
@@ -430,7 +452,7 @@
 										</div>';
 									if (property_exists($physics, 'FuelRechargeRate') && $physics->FuelRechargeRate > 0) echo '
 										<div class ="info" style="color:'.getFactionColor($inf['Faction'], 'bright').';">
-											Fuel refill rate: '.round(($physics->FuelRechargeRate)*100).'%
+											Fuel refill rate: '.(($physics->FuelRechargeRate)).'
 										</div>';
 									if (property_exists($physics, 'FuelUseTime') && $physics->FuelUseTime > 0) echo '
 										<div class ="info" 
@@ -659,6 +681,8 @@
 				
 				//WEAPONS
 				else if ($thisComponent == "Weapon"){
+					
+					//var_dump($thisUnit);
 					if (property_exists($thisUnit, "Weapon")){
 						echo '<div class="sheetSection">
 								<div class="smallTitle"  style="color:'.getFactionColor($inf['Faction'], 'bright').';">
@@ -893,7 +917,8 @@
 									
 						foreach($enhancements as $thisEnhancement){
 							if (!in_array($thisEnhancement, $blacklist)
-								&& property_exists($thisEnhancement, "Slot")){
+								&& property_exists($thisEnhancement, "Slot")
+								&&!property_exists($thisEnhancement, 'RemoveEnhancements')){
 								echo '		<details class="weaponList">
 												
 												<summary  class="weaponCategory">
@@ -972,7 +997,13 @@
 												'BuildTime', 
 												'Name', 
 												'Icon',
-												'ShieldRegenStartTime'];
+												'ShieldRegenStartTime',
+												'ShowBones',
+												'UpgradeEffectBones',
+												'UpgradeUnitAmbientBones',
+												'HideBones',
+												'BuildableCategoryAdds',
+												'Prerequisite'];
 								foreach($thisEnhancement as $propName=>$property){
 									if (!in_array($propName, $blacklist)){
 										echo '
@@ -1176,11 +1207,19 @@
 		//END OF 
 
 		for ($i = 0; $i < sizeOf($dataJS); $i++){
-			
+			//var_dump($dataJS[$i]);
 			$item = $dataJS[$i];
 			
-			$faction = $item->General->FactionName;
+			if (in_array('OPERATION', $item->Categories) || 
+				in_array('CIVILLIAN', $item->Categories)||
+				!property_exists($item, 'StrategicIconName') ||
+				!property_exists($item, 'General') ||
+				!property_exists($item->General, 'Icon')){
+				continue;
+			}
 			
+			$faction = $item->General->FactionName;
+			//exit;
 			
 			//CATEGORIZING
 			
@@ -1270,8 +1309,9 @@
 			///////////////
 			//	BUILDING - SENSOR
 			//////////////
-			else if (in_array('STRUCTURE', $itemCat) && 
-						(in_array ('SORTINTEL', $itemCat))){
+			else if ((in_array('STRUCTURE', $itemCat) || in_array('MOBILESONAR', $itemCat)) && 
+						(in_array ('SORTINTEL', $itemCat) ||
+						in_array('SONAR', $itemCat))){
 				$finalData['Building - Sensor'][$tech][$faction][] = $item;
 			}
 			
@@ -1550,9 +1590,12 @@
 						'.$nickname.($unit->Description).'
 						</p>
 						<p style="
-							padding-left:15px;
-							margin:0px;">
-						'.($unit->Id).'
+								padding-left:15px;
+								margin:0px;">
+							<a href=" https://github.com/FAForever/fa/blob/develop/units/'.($unit->Id).'/'.($unit->Id).'_unit.bp"
+								class="blueprintLink" style="color:'.(getFactionColor($unit->General->FactionName, 'bright')).';">
+								'.($unit->Id).'
+							</a>
 						</p>
 					</div>
 				</div>';
