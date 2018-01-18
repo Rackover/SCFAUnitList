@@ -1,5 +1,9 @@
 # SCFA/FAF Unit List
 This project aims to create a webpage that can load dynamically Supreme Commander's unit list and display them all with their own stats.
+At the moment (17/01/2018), two other databases exist :
+- The "official" one, which is very old and outdated.
+- [Spooky's database](https://github.com/spooky/unitdb), up to date, but I personally don't like the layout of it. 
+So I've made my own !
 
 ### Prerequisites
 
@@ -47,9 +51,9 @@ This project is licensed under the Beerware license. See the [LICENSE](LICENSE) 
 
 ## Acknowledgments
 
-* This database uses some sprites and logo from [Spooky's DB](https://github.com/spooky/unitdb) which was a similar project : but all the code for this one db has been made from scratch by me (rackover).
-* Also, all the sprites and logos and fonts used in this project either come directly from the game files, or are vanilla Windows fonts.
+* All the code for this one db has been made from scratch using nothing more than my bare hands : no code have been taken neither from  [Spooky's DB](https://github.com/spooky/unitdb), nor from the *official* unitDB.
+* All the sprites and logos and fonts used in this project either come directly from the game files, or are vanilla Windows fonts (except for the FA Forever logo, used as a favicon). But I must credit [Spooky's DB](https://github.com/spooky/unitdb) nevertheless, as I was too lazy to rip some game textures and got them directly from Spooky's git.
 
 ## Todo list
 
-For now the thing loads data from a [UNIT.JSON](UNIT.JSON) file, which needs to be generated from the game blueprints using tools from Spooky's repository. Next thing to do is to make them load directly from the game files ! Which should be a big thing. We'll see.
+For now the thing loads data from a [DATA/UNITS_COMPLETE.JSON](UNIT.JSON) file, which needs to be generated from the game blueprints using tools from Spooky's repository. Next thing to do is to make them load directly from the game files ! Which should be a big thing. We'll see.

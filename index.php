@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-<LINK href="STYLE.CSS" rel="stylesheet" type="text/css">
-<title>SCFA UNIT LIST</title>
+	<LINK href="STYLE.CSS" rel="stylesheet" type="text/css">
+	<link rel="icon" href="favicon.ico" />
+	<title>SCFA Unit list</title>
+
 </head>
   <BODY>
 	<script>
@@ -1474,7 +1476,12 @@
 		<script>
 			checkForUnitsToCompare();
 		</script>
-		<div style="height:64px;">
+		<div style="height:64px;position:relative;width:100%;">
+			<div style="position:absolute;right:5px;bottom:-10px;text-align:right;">
+				<a href="LICENSE" style="color:white;font-size:10px;">
+					Made by rackover@racknet.noip.me - 2018
+				</a>
+			</div>
 		</div>';
 	}
 	
