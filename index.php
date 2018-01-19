@@ -9,6 +9,15 @@
 </head>
   <BODY>
 	<script>
+		function toggleSettingsMenu (){
+			let setMenu = document.getElementById('settingsMenu');
+			if (setMenu.style.display == "block"){
+				setMenu.style.display="none";
+			}
+			else{
+				setMenu.style.display ="block";
+			}
+		}
 		function openAllBlueprintsSections(id){
 			let bpList = document.getElementsByClassName('unitBlueprints');
 			let mode = false;
@@ -48,24 +57,37 @@
 			return vars;
 		}
 		function seeUnit(id=null){ //Used to enter the comparator on click
-			if (id == null){
-				const checkList = document.getElementsByClassName('unitSelector');
-				let idList = [];
-				for (i = 0; i < checkList.length; i++) {
-					if (checkList[i].checked){
-						idList.push(checkList[i].id);
-					}
+			const checkList = document.getElementsByClassName('unitMainDiv');
+			let idList = [];
+			for (i = 0; i < checkList.length; i++) {
+				if (checkList[i].classList.contains('unitSelected')){
+					idList.push(checkList[i].id);
 				}
-				id = idList.join();
+			}
+			if (id != null){
+				idList.push(id);
+			}
+			id = idList.join();
+			if (id == "" || id == null){
+				id = -1;
 			}
 			window.location.href = "<?php echo basename(__FILE__);?>?id="+id;
 		}
-		
+		function toggleSelect(div_id){
+			let line = document.getElementById(div_id);
+			if (line.classList.contains('unitSelected')){
+				line.classList.remove('unitSelected');
+			}
+			else{
+				line.classList.add('unitSelected');
+			}
+			checkForUnitsToCompare();
+		}
 		function checkForUnitsToCompare(){
-			let selected = document.getElementsByClassName('unitSelector');
+			let selected = document.getElementsByClassName('unitMainDiv');
 			let amount = 0;
 			for (i = 0; i < selected.length; i++) {
-				if (selected[i].checked){
+				if (selected[i].classList.contains('unitSelected')){
 					amount++;
 				}
 			}
@@ -113,7 +135,42 @@
 	
 	
 	//END OF
-		
+	
+
+	//SPECIFICS SETTINGS LOAD
+	$dirPath = 'CONFIG/USERS/'.str_replace(':','-',$_SERVER['REMOTE_ADDR']).'_'.md5( $_SERVER['HTTP_USER_AGENT']);
+	$userSettingsPath = ($dirPath.'/SPECIFICS.JSON');
+	if (!is_dir($dirPath)){
+		mkdir($dirPath);
+	}
+	$userSettings = array(
+		"showArmies"=>['Aeon','UEF','Cybran','Seraphim'],
+		"previewCorner"=>"bottom left",
+		"autoExpand"=>false
+	);
+	if (file_exists($userSettingsPath)){
+		$userSettings = json_decode(file_get_contents($userSettingsPath), true);
+	}
+	if (isset($_POST['settingsMod'])){
+		//var_dump($_POST);
+		foreach($_POST as $key=>$thisSetting){
+			if ($key != 'settingsMod'){
+				if (is_JSON($thisSetting)){
+					$thisSetting = json_decode($thisSetting);
+				}
+				$userSettings[$key] = $thisSetting;
+			}
+		}
+	}
+	file_put_contents($userSettingsPath, json_encode($userSettings));
+	
+	
+	
+	//END OF
+
+
+
+	
 	$dataString = file_get_contents("DATA/FALLBACK.JSON");
 	$dataJS = json_decode($dataString);
 	
@@ -176,12 +233,16 @@
 			
 			foreach($toCompare as $thisUnit){
 			
-				$inf['Description'] = $thisUnit->Description;
+				$description = "unit";
+				if (property_exists($thisUnit, 'Description')){
+					$description = ($thisUnit->Description);
+				}
+				$inf['Description'] = $description;
 				$inf['Health'] = $thisUnit->Defense->Health;
 				$inf['Regen'] = $thisUnit->Defense->RegenRate;
 				$inf['Economy'] = $thisUnit->Economy;
 				$inf['Faction'] = $thisUnit->General->FactionName;
-				$inf['Id'] = $thisUnit->Id;
+				$inf['Id'] = strtoupper($thisUnit->Id);
 				$inf['Strategic'] = $thisUnit->StrategicIconName;
 				$inf['Display'] = $thisUnit->Display;
 				$inf['Categories'] = $thisUnit->Categories;
@@ -201,9 +262,9 @@
 								<div style="margin-right:27px;">
 									'.getUnitTitle($thisUnit).'
 								</div>
-								<button style="font-weight:bold;
+								<button style="
 											color:red;
-											background-color:black;
+											background-color:rgba(0,0,0,0.25);
 											position:absolute;
 											right:0;
 											top:0;" 
@@ -226,6 +287,14 @@
 					
 						
 					//ECONOMY
+					
+						$nrgCost = 0;
+						$mssCost = 0;
+						$bldCost = 0;
+						
+						if (property_exists($inf['Economy'], 'BuildCostEnergy')) $nrgCost = $inf['Economy']->BuildCostEnergy;
+						if (property_exists($inf['Economy'], 'BuildCostMass')) $mssCost = $inf['Economy']->BuildCostMass;
+						if (property_exists($inf['Economy'], 'BuildTime')) $bldCost = $inf['Economy']->BuildTime;
 						
 						echo '<div class="sheetSection">
 								<div class="smallTitle"  style="color:'.getFactionColor($inf['Faction'], 'bright').';">
@@ -234,13 +303,13 @@
 									
 									<div class="flexColumns" style="padding-bottom:4px;">
 										<div class="energyCost">
-											<img alt="nrg" style="vertical-align:top;" src="IMG/ICONS/energy.png"> '.format($inf['Economy']->BuildCostEnergy).'
+											<img alt="nrg" style="vertical-align:top;" src="IMG/ICONS/energy.png"> '.format($nrgCost).'
 										</div>
 										<div class="massCost">
-											<img alt="mss" style="vertical-align:top;" src="IMG/ICONS/mass.png"> '.format($inf['Economy']->BuildCostMass).'
+											<img alt="mss" style="vertical-align:top;" src="IMG/ICONS/mass.png"> '.format($mssCost).'
 										</div>
 										<div class="buildTimeCost">
-											<img alt="tim" style="vertical-align:top;" src="IMG/ICONS/time.png"> '.format($inf['Economy']->BuildTime).'
+											<img alt="tim" style="vertical-align:top;" src="IMG/ICONS/time.png"> '.format($bldCost).'
 										</div>
 									</div>
 								</div>';
@@ -545,7 +614,12 @@
 				}
 				
 				//VETERANCY
-				else if ($thisComponent == "Veteran" && property_exists($thisUnit, 'Weapon') && sizeOf($thisUnit->Weapon) > 0){
+				else if (	$thisComponent == "Veteran" && 
+							property_exists($thisUnit, 'Weapon') && 
+							(sizeOf($thisUnit->Weapon) > 1 || (property_exists(array_values(get_object_vars ($thisUnit->Weapon))[0], "WeaponCategory") && 
+																array_values(get_object_vars ($thisUnit->Weapon))[0]->WeaponCategory != "Death"))){
+								
+								
 					///////////
 					/// If this is a commander, display the custom veterancy system
 					///////////
@@ -693,7 +767,12 @@
 						foreach($weapons as $thisWeapon){
 							if (property_exists($thisWeapon, 'DisplayName')){
 								
-								echo '<details class="weaponList">
+								$autoOpen = '';
+								if ($userSettings['autoExpand']){
+									$autoOpen = 'open';
+								}
+								
+								echo '<details class="weaponList" '.$autoOpen.'> 
 										<summary  class="weaponCategory">
 											'.($thisWeapon->DisplayName).'
 										</summary>
@@ -919,7 +998,13 @@
 							if (!in_array($thisEnhancement, $blacklist)
 								&& property_exists($thisEnhancement, "Slot")
 								&&!property_exists($thisEnhancement, 'RemoveEnhancements')){
-								echo '		<details class="weaponList">
+									
+								$autoOpen = '';
+								if ($userSettings['autoExpand']){
+									$autoOpen = 'open';
+								}
+								
+								echo '		<details class="weaponList" '.$autoOpen.'>
 												
 												<summary  class="weaponCategory">
 													<img 
@@ -1003,7 +1088,10 @@
 												'UpgradeUnitAmbientBones',
 												'HideBones',
 												'BuildableCategoryAdds',
-												'Prerequisite'];
+												'Prerequisite',
+												'OwnerShieldMesh',
+												'ImpactEffects',
+												'ShieldEnergyDrainRechargeTime'];
 								foreach($thisEnhancement as $propName=>$property){
 									if (!in_array($propName, $blacklist)){
 										echo '
@@ -1087,8 +1175,11 @@
 				
 				//FACTORY
 				else if ($thisComponent == "FACTORY" && 
+							/*
 							(in_array("FACTORY", $thisUnit->Categories) ||
-							in_array("ENGINEER", $thisUnit->Categories)) &&
+							in_array("ENGINEER", $thisUnit->Categories) ||
+							in_array("ENGINEERSTATION", $thisUnit->Categories)) &&
+							*/
 							property_exists($thisUnit->Economy, 'BuildableCategory')){
 					$buildable = [];
 					foreach($dataJS as $unit){
@@ -1096,7 +1187,7 @@
 							$buildableRequirements = explode(' ', $buildableCategory);
 							$canBuild = true;
 							foreach($buildableRequirements as $requirement){
-								if (!in_array($requirement, $unit->Categories)){
+								if (!in_array($requirement, $unit->Categories) && strtoupper($requirement) != strtoupper($unit->Id)){
 									$canBuild = false;
 								}
 							}
@@ -1108,25 +1199,29 @@
 					
 					$buildable = array_unique ($buildable, SORT_REGULAR);
 					
-					if (sizeOf($buildable > 0)){
+					if (sizeOf($buildable) > 0){
 						
+						$autoOpen = '';
+						if ($userSettings['autoExpand']){
+							$autoOpen = 'open';
+						}
+								
 						echo '
-						<details class="sheetSection unitBlueprints" id="blueprintsSection'.($thisUnit->Id).'" onClick="openAllBlueprintsSections(\'blueprintsSection'.($thisUnit->Id).'\')">
+						<details class="sheetSection unitBlueprints" id="blueprintsSection'.($thisUnit->Id).'" onClick="openAllBlueprintsSections(\'blueprintsSection'.($thisUnit->Id).'\')" '.$autoOpen.'>
 							<summary class="smallTitle"  style="color:'.getFactionColor($inf['Faction'], 'bright').';">
 								Blueprints
 							</summary>';
-							
 						foreach($buildable as $buildableUnit){
 							
 							if (property_exists($buildableUnit, 'StrategicIconName')){
-								$icon = ($buildableUnit->General->FactionName).'_'.($buildableUnit->StrategicIconName);
+								$icon = ($buildableUnit->StrategicIconName)."_rest";
 							}
 							echo '
 							<div class="flexRows">
 								<div class="flexColumns unit unitMainDiv">
 									<div
 										onclick="seeUnit(\''.($buildableUnit->Id).'\')">
-										<img src="IMG/STRATEGIC/'.$icon.'.png" style="width:17px; height:17px;" alt="[x]">
+										<img src="IMG/STRATEGIC/'.$icon.'.png" style="filter: contrast(70%) sepia(300%) brightness(150%) hue-rotate('.(getFactionColor($buildableUnit->General->FactionName, 'hue')-63).'deg) saturate(300%) brightness(70%) contrast(200%) brightness(130%);" alt="[x]">
 									</div>';
 							
 							
@@ -1178,14 +1273,15 @@
 	else{
 			
 		echo '
-			<div style="position:fixed;left:50%;bottom:10px;">
+			<div style="position:fixed;left:50%;
+	z-index:5;bottom:10px;">
 				<button id="comparatorPopup" hidden	
 						onClick="seeUnit()">
-					Open comparator...
+					Compare units...
 				</button>
 			</div>';
 
-		$armies = ['UEF', 'Cybran', 'Aeon', 'Seraphim'];
+		$armies = [];
 
 		$finalData = [];
 		
@@ -1202,7 +1298,8 @@
 							'Aircraft'=>null, 
 							'Vehicle'=>null, 
 							'Naval'=>null, 
-							'Support'=>null);
+							'Support'=>null,
+							'Civilian & Miscellanous'=>null);
 		
 		//END OF 
 
@@ -1210,27 +1307,42 @@
 			//var_dump($dataJS[$i]);
 			$item = $dataJS[$i];
 			
-			if (in_array('OPERATION', $item->Categories) || 
-				in_array('CIVILLIAN', $item->Categories)||
-				!property_exists($item, 'StrategicIconName') ||
+			/*
+			if (!property_exists($item, 'StrategicIconName') ||
 				!property_exists($item, 'General') ||
 				!property_exists($item->General, 'Icon')){
 				continue;
 			}
+			*/
 			
-			$faction = $item->General->FactionName;
-			//exit;
-			
+			$faction = ucfirst(strtolower($item->General->FactionName));
+			if (strtolower($faction) == "uef"){	//
+				$faction = strtoupper($faction);// Exception
+			}									//
+			if (!in_array($faction, $armies) && in_array($faction, $userSettings['showArmies'])){
+				$armies[] = ($faction);
+			}
+						
 			//CATEGORIZING
 			
 			$itemCat = $item->Categories;
 			
 			$tech = getTech($item);
 			
+			//////////////
+			//	CIVILIAN
+			/////////////
+			if (in_array('OPERATION', $item->Categories) || 
+				in_array('CIVILIAN', $item->Categories) ||
+				in_array('INSIGNIFICANTUNIT', $item->Categories)){
+					
+				$finalData['Civilian & Miscellanous'][""][$faction][] = $item;
+			}
+			
 			///////////////
 			//	COMMANDER & SACU
 			//////////////
-			if (in_array ('COMMAND', $itemCat)
+			else if (in_array ('COMMAND', $itemCat)
 				|| in_array ('SUBCOMMANDER', $itemCat)){
 				$finalData['Command'][$tech][$faction][] = $item;
 			}
@@ -1290,7 +1402,8 @@
 			//	BUILDING - WEAPON
 			//////////////
 			else if (in_array('STRUCTURE', $itemCat) && 
-						(in_array ('INDIRECTFIRE', $itemCat) ||
+						(in_array('NUKE', $itemCat) ||
+						in_array ('INDIRECTFIRE', $itemCat) ||
 						in_array ('DIRECTFIRE', $itemCat))){
 				$finalData['Building - Weapon'][$tech][$faction][] = $item;
 			}
@@ -1313,6 +1426,12 @@
 						(in_array ('SORTINTEL', $itemCat) ||
 						in_array('SONAR', $itemCat))){
 				$finalData['Building - Sensor'][$tech][$faction][] = $item;
+			}
+			
+			//Dumping all the rest in "misc"
+			else{
+				
+				$finalData['Civilian & Miscellanous'][""][$faction][] = $item;
 			}
 			
 			
@@ -1349,6 +1468,8 @@
 		///////////////////////////////////////
 
 		
+		$techOrder = ['', 'T1 ', 'T2 ', 'T3 ', 'Experimental '];
+		
 		
 		///DISPLAY THE BIG HEADER / TITLE
 		
@@ -1360,10 +1481,14 @@
 			
 		foreach($armies as $armyName){
 			// #
+			$loadFile = 'IMG/FACTIONAL/'.strtolower($armyName).'_load.jpg';
+			if (!file_exists($loadFile)){
+				$loadFile = 'IMG/FACTIONAL/default_load.jpg';
+			}
 			echo '
 				<div class="flexColumns title" style="
 					background-repeat: no-repeat;
-					background-image:url(\'IMG/FACTIONAL/'.strtolower($armyName).'_load.jpg\');
+					background-image:url(\''.$loadFile.'\');
 					background-size: cover;
 					background-position: center;
 					color:'.getFactionColor($armyName, "bright").';
@@ -1399,8 +1524,13 @@
 			
 			//$catName = strtoupper($catName[0]).strtolower(substr($catName, 1));
 			
+			$open = "open";
+			if ($catName == "Civilian & Miscellanous"){
+				$open = "";
+			}
+			
 			echo '
-			<details open>
+			<details '.$open.'>
 				<summary class="categoryName">
 					'.$catName.'
 				</summary>';
@@ -1410,7 +1540,13 @@
 				justify-content:space-between;
 				flex-direction: column;" >';
 				
+			$categories = array_merge(array_flip($techOrder), $categories);
+				
 			foreach($categories as $techName => $techLevel){
+				
+				if (!is_array($techLevel)){
+					continue;
+				}
 				
 				echo '<div style="
 					display: flex;
@@ -1424,7 +1560,7 @@
 					
 					$border = '';
 					
-					if ($techName != "T1 "){
+					if ($techName != "T1 " && $techName != ""){
 						$border = 'border-top: 1px dotted grey;';
 					}				
 					
@@ -1449,15 +1585,28 @@
 						if (property_exists($thisUnit, 'Id')){
 							$id = $thisUnit->Id;
 							
-							echo '<div class="unitMainDiv tooltip" style="display:flex;flex-direction:row-reverse;">
-									<div class="tooltiptext" style="opacity:0.85; background-color:'.getFactionColor($thisUnit->General->FactionName, "dark").';">
+							$position = 'left:0px;bottom:0px;';
+							switch ($userSettings['previewCorner']){
+								case "top left":
+									$position = 'left:0px;top:0px;';
+									break;
+									
+								case "top right":
+									$position = 'right:0px;top:0px;';
+									break;
+									
+								case "bottom right":
+									$position = 'right:0px;bottom:0px;';
+									break;
+							}
+							
+							echo '<div class="unitMainDiv tooltip" 
+											style="display:flex;flex-direction:row-reverse;'.$position.'"
+											id="'.($thisUnit->Id).'" 
+											onClick="toggleSelect(\''.($thisUnit->Id).'\')">
+									<div class="tooltiptext" style="'.$position.'opacity:0.85; background-color:'.getFactionColor($thisUnit->General->FactionName, "dark").';">
 										'.getUnitTitle($thisUnit).'
 									</div>
-									<input class="unitSelector" 
-									type="checkbox"  
-											id="'.($thisUnit->Id).'" 
-											onClick="checkForUnitsToCompare()" />';
-							echo '
 									<div class="unit" 
 										style="
 											display: flex;
@@ -1467,24 +1616,30 @@
 						
 							$icon = '';
 							if (property_exists($thisUnit, 'StrategicIconName')){
-								$icon = $armyName.'_'.($thisUnit->StrategicIconName);
+								$icon = ($thisUnit->StrategicIconName).'_rest';
 							}
 							echo '
-									<div 
-										onclick="seeUnit(\''.$id.'\')">
-										<img src="IMG/STRATEGIC/'.$icon.'.png" style="width:17px; height:17px;" alt="[x]">
+									<div style="width:20px; 
+												height:20px;
+												filter: contrast(70%) sepia(300%) brightness(150%) hue-rotate('.(getFactionColor($armyName, 'hue')-63).'deg) saturate(300%) brightness(70%) contrast(200%) brightness(130%);" >
+										<img src="IMG/STRATEGIC/'.$icon.'.png" alt="[x]">
 									</div>';
 							
 							
-							$description = $techName.($thisUnit->Description);
+							$description = "unit";
+							if (property_exists($thisUnit, 'Description')){
+								$description = ($thisUnit->Description);
+							}
+							$description = $techName.($description);
 							$name = '';
 							if (property_exists($thisUnit->General, 'UnitName')){
 								$name = ($thisUnit->General->UnitName);
 							}
 							echo '
-									<div class="unitName" style="width:100%;"
-										onclick="seeUnit(\''.$id.'\')">
+									<div class="unitName" style="width:100%;">
+										<span class="unitHotLink" onclick="seeUnit(\''.$id.'\')">
 										'.($description).'
+										</span>
 										<span style="
 											font-weight:bold; 
 											font-style:italic;
@@ -1523,7 +1678,82 @@
 				</a>
 			</div>
 		</div>';
-	}
+	} ?>
+	
+	<button style="position:fixed;
+				right:15px;
+				bottom:-16px;
+				color:#EEEEEE;
+				background-color:#303030;
+				font-family:Zeroes;
+				height:48px;
+				width:128px;
+				padding:8px;
+				border-radius:8px;
+				cursor:pointer;"
+			onClick="toggleSettingsMenu()">
+		<div style="position:absolute;top:8px;left:0px;text-align:center;width:100%;">
+			Settings
+		</div>
+		
+	</button>
+	
+	<div style="
+			z-index:10;
+			position:fixed;
+			left:50%;
+			top:25%;
+			margin-left:-300px;
+			color:#EEEEEE;
+			background-color:#303030;
+			border:1px solid white;
+			width:600px;
+			display:none;" id="settingsMenu">
+		<div style="font-family:Zeroes;text-align:center;width:100%;margin-top:8px;margin-bottom:16px;">
+			Settings
+		</div>
+		<div class="flexRows" style="width:100%;text-align:center;margin-bottom:32px;">
+			<form action="index.php" method="POST" name="settingsMod">
+			<?php 
+				foreach($userSettings as $settingName=>$settingValue){
+					
+					if(is_array($settingValue)){
+						$settingValue = '<input type="text" name="'.$settingName.'" value=\''.json_encode($settingValue).'\'/>';
+					}
+					else if (is_bool($settingValue)){
+						$checked = "";
+						if ($settingValue){
+							$checked = "checked";
+						}
+						$settingValue = '<input name="'.$settingName.'" type="checkbox" '.$checked.' />'; 
+					}		
+					else{
+						$settingValue = '<input name="'.$settingName.'" type="text" value=\''.($settingValue).'\'/>';
+					}
+					echo '
+				<div class="flexColumns" style="margin:32px;margin-top:8px;margin-bottom:8px;">
+					<div style="text-align:left;width:50%;margin:8px;">
+						'.$settingName.'
+					</div>
+					<div style="text-align:right;width:50%;margin:8px;">
+						'.$settingValue.'
+					</div>
+				</div>';
+				}
+			?>
+				<div>
+					<input type="hidden" name="settingsMod" value=1>
+					<input type="submit" value="Apply" style="
+						font-family:Zeroes;
+						color:#303030;
+						background-color:#EEEEEE;
+						width:30%;"/>
+				</div>
+			</form>
+		</div>
+	</div>
+	
+	<?php
 	
 	///////////////////////////////////////
 	///									///
@@ -1534,33 +1764,38 @@
 	function getFactionColor($faction, $tint="normal"){
 		switch($faction){
 			default:
-				$color['normal'] = "#C3272B";
-				$color['bright'] = "#E68364";
-				$color['dark'] = "#8F1D21";
+				$color['normal'] = "grey";
+				$color['bright'] = "lightgrey";
+				$color['dark'] = "#222222";
+				$color['hue'] = 220;
 				break;
 		
 			case "Cybran" :
 				$color['normal'] = "#C3272B";
 				$color['bright'] = "#F1A9A0";
 				$color['dark'] = "#6A0C0C";
+				$color['hue'] = 0;
 				break;
 				
 			case "Seraphim" :
 				$color['normal'] = "#F4B350";
 				$color['bright'] = "#FDE3A7";
 				$color['dark'] = "#664d00";
+				$color['hue'] = 53;
 				break;
 				
 			case "UEF" :
 				$color['normal'] = "#2C4770";
 				$color['bright'] = "#ADB6C4";
 				$color['dark'] = "#13294C";
+				$color['hue'] = 227;
 				break;
 				
 			case "Aeon" :
 				$color['normal'] = "#87D37C";
 				$color['bright'] = "#C8F7C5";
 				$color['dark'] = "#004d00";
+				$color['hue'] = 104;
 				break;
 		}
 		return $color[$tint];
@@ -1579,22 +1814,34 @@
 		if (property_exists($unit->General, 'UnitName')){
 			$nickname = '"'.($unit->General->UnitName).'" ';
 		}
+		$terrain = 'none';
+		$strategic = 'none';
+		$description = 'unit';
+		if (property_exists($unit, 'StrategicIconName')){
+			$strategic = $unit->StrategicIconName;
+		}
+		if (property_exists($unit->General, 'Icon')){
+			$terrain = $unit->General->Icon;
+		}
+		if (property_exists($unit, 'Description')){
+			$description = ($unit->Description);
+		}
 		return '<div class="unitTitleBar" style="border-top:1px solid white;">
 					<div class="previewImg">
-						<img alt="preview" class="backgroundIconOverlap" src="IMG/PREVIEW_BACKGROUND/'.($unit->General->Icon).'_up.png">
-						<img alt="preview"	class="strategicIcon" src="IMG/PREVIEW/'.($unit->Id).'.png">
-						<img alt="strategic" class="strategicIconOverlap" src="IMG/STRATEGIC/'.($unit->General->FactionName)."_".($unit->StrategicIconName).'.png">
+						<img alt="" class="backgroundIconOverlap" src="IMG/PREVIEW_BACKGROUND/'.($terrain).'_up.png">
+						<img alt="?" class="strategicIcon" style= "width:64px;height:64px;" src="IMG/PREVIEW/'.strtoupper($unit->Id).'.png">
+						<img alt="[x]" class="strategicIconOverlap" src="IMG/STRATEGIC/'.($strategic).'_rest.png" style="filter: contrast(70%) sepia(300%) brightness(150%) hue-rotate('.(getFactionColor($unit->General->FactionName, 'hue')-63).'deg) saturate(300%) brightness(70%) contrast(200%) brightness(130%);">
 					</div>
 					<div style="color:'.getFactionColor($unit->General->FactionName, 'bright').';" >
 						<p  class="previewTitle">
-						'.$nickname.($unit->Description).'
+						'.$nickname.$description.'
 						</p>
 						<p style="
 								padding-left:15px;
 								margin:0px;">
 							<a href=" https://github.com/FAForever/fa/blob/develop/units/'.($unit->Id).'/'.($unit->Id).'_unit.bp"
 								class="blueprintLink" style="color:'.(getFactionColor($unit->General->FactionName, 'bright')).';">
-								'.($unit->Id).'
+								'.strtoupper($unit->Id).'
 							</a>
 						</p>
 					</div>
@@ -1619,6 +1866,11 @@
 			$unitTech = "Experimental ";
 		}
 		return $unitTech;
+	}
+	
+	function is_JSON($args) {
+		json_decode($args);
+		return (json_last_error()===JSON_ERROR_NONE);
 	}
 	
 	?>

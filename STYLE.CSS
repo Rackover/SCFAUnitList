@@ -30,14 +30,6 @@ button{
     text-align: left;
     padding: 5px;
     position: fixed;
-	/*
-    bottom: 100%;
-	width:300px;
-    left: 50%; 
-    margin-left: -150px; 
-	*/
-	left:0px;
-	bottom:0px;
     z-index: 1;
 }
 
@@ -74,20 +66,22 @@ input[type=checkbox]{
 .unit{
 	padding-left:4px;
 }
-.unitMainDiv:hover, .unitMainDiv:hover>.unitSelector, .unit:hover, .unitSelector:checked + .unit{
-	opacity:1;
+.unitMainDiv:hover{
 	font-weight:bold;
 	background-color:darkgrey;
 	color:white;
 }
-.unitSelector:checked + .unit{
+.unitSelected{
 	background-color:black;
+	font-weight:bold;
+	color:white;
 }
 .unitName{
 	margin-left:4px;
 }
-.unit:hover{
+.unitHotLink:hover{
 	cursor: pointer;
+	text-decoration:underline;
 }
 
 .comparisonBoard{
@@ -99,7 +93,7 @@ input[type=checkbox]{
 .boardLane{
 	display: flex; 
 	flex-flow: row nowrap;
-	justify-content:space-around;
+	justify-content:flex-start;
 }
 #comparatorPopup{
 	position:relative;
@@ -111,27 +105,19 @@ input[type=checkbox]{
 	background:linear-gradient(to bottom, #333333, BLACK, #333333);
 	border:1px solid grey;
 	cursor:pointer;
+	z-index:5;
 }
 #comparatorPopup:hover{
 	color:white;
 	background:linear-gradient(to bottom, #333333, darkgrey, #333333);
-}
-.unitSelector{
-	margin-right:8px;
-}
-.unitSelector{
-	opacity:0;
-}
-.unit:hover .unitSelector, .unitSelector:checked{
-	opacity:1;
 }
 .unitCompared{
 	flex-shrink:0;
 	display: flex;
 	width:300px;
 	margin:0px;
-	margin-left:4px;
-	margin-right:4px;
+	margin-left:40px;
+	margin-right:40px;
 	justify-content:flex-start;
 	flex-wrap: nowrap;
 	flex-direction: column;

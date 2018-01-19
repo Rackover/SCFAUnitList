@@ -63,6 +63,7 @@
 	
 	function prepareForConversion($string_bp){
 		$string_bp = preg_replace('/--(.*)/', "", $string_bp);
+		$string_bp = preg_replace('/#(.*)/', "", $string_bp);
 		$string_bp = str_replace("'", '"', $string_bp);
 		$string_bp = str_replace('Sound', '', $string_bp);
 		//$string_bp = str_replace('UnitBlueprint', '', $string_bp);
@@ -85,7 +86,7 @@
 	$failed = 0;
 	for ($h = 0; $h < sizeOf($toExtract); $h ++){
 		$zip = new ZipArchive;
-		if ($zip->open('DATA/GAMEDATA/'.($toExtract[$h]).'') === TRUE) {	
+		if ($zip->open(''.($toExtract[$h]).'') === TRUE) {	
 			for ($i=0; $i<$zip->numFiles;$i++) {
 				$name = $zip->statIndex($i)['name'];
 				if (strpos($name, '.bp') !== false){
