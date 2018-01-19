@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-	<LINK href="STYLE.CSS" rel="stylesheet" type="text/css">
+	<LINK href="STYLE.CSS?version=1" rel="stylesheet" type="text/css">
 	<link rel="icon" href="favicon.ico" />
 	<title>SCFA Unit list</title>
 
@@ -139,6 +139,7 @@
 
 	//SPECIFICS SETTINGS LOAD
 	$dirPath = 'CONFIG/USERS/'.str_replace(':','-',$_SERVER['REMOTE_ADDR']).'_'.md5( $_SERVER['HTTP_USER_AGENT']);
+	
 	$userSettingsPath = ($dirPath.'/SPECIFICS.JSON');
 	if (!is_dir($dirPath)){
 		mkdir($dirPath);
