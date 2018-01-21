@@ -166,6 +166,7 @@
 	);
 	if (file_exists($userSettingsPath)){
 		$userSettings = json_decode(file_get_contents($userSettingsPath), true);
+		$userSettings = array_replace($defaultSettings, $userSettings);
 	}
 	else{
 		$userSettings = $defaultSettings;
