@@ -2,13 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-	<LINK href="STYLE.CSS?version=1" rel="stylesheet" type="text/css">
+	<LINK href="STYLE.CSS?version=2" rel="stylesheet" type="text/css">
 	<link rel="icon" href="favicon.ico" />
 	<title>SCFA Unit list</title>
 
 </head>
   <BODY>
 	<script>
+		function hideUpdateMenu(){
+			document.getElementById('updateMenu').style.display = "none";
+		}
 		function toggleSettingsMenu (){
 			let setMenu = document.getElementById('settingsMenu');
 			if (setMenu.style.display == "block"){
@@ -127,12 +130,22 @@
 		$settings = json_decode(file_get_contents($settingsString), true);
 	}
 
-	if (($settings["lastUpdate"] + $settings["every"]) < time()){
-		include("update.php");
-		$settings["lastUpdate"] = time();
+	if (($settings["lastUpdate"] + $settings["every"]) < time() ){
+		if (!file_exists("CONFIG/UPDATE.TMP")){
+			include("update.php");
+			$settings["lastUpdate"] = time();
+		}
+		else{
+			echo '
+		<div style="width:100%;margin-bottom:8px;text-align:center;">
+			<span style="color:cyan;">
+				Database seems to be updating. This should take a few minutes and meanwhile, displayed information may be inaccurate. Report to the developpers if this message stays for long.
+			</span>
+		</div>';
+		}
 	}
 	file_put_contents($settingsString, json_encode($settings));
-	
+		
 	
 	//END OF
 	
@@ -144,28 +157,52 @@
 	if (!is_dir($dirPath)){
 		mkdir($dirPath);
 	}
-	$userSettings = array(
+	$defaultSettings = array(
 		"showArmies"=>['Aeon','UEF','Cybran','Seraphim'],
 		"previewCorner"=>"bottom left",
-		"autoExpand"=>false
+		"autoExpand"=>"0",
+		"spookyMode"=>"0",
+		"lang"=>"US"
 	);
 	if (file_exists($userSettingsPath)){
 		$userSettings = json_decode(file_get_contents($userSettingsPath), true);
 	}
+	else{
+		$userSettings = $defaultSettings;
+	}
 	if (isset($_POST['settingsMod'])){
-		//var_dump($_POST);
-		foreach($_POST as $key=>$thisSetting){
-			if ($key != 'settingsMod'){
-				if (is_JSON($thisSetting)){
-					$thisSetting = json_decode($thisSetting);
+		foreach($defaultSettings as $key=>$thisSetting){
+			if (!isset($_POST[$key])){
+				$userSettings[$key] = $defaultSettings[$key];
+			}
+			else{
+				switch ($key){
+					default:
+						$thisSetting = $_POST[$key];
+						break;
+					
+					case "autoExpand":
+					case "spookyMode":
+						if (array_key_exists($key, $_POST) && $_POST[$key] == "on"){
+							$thisSetting = "1";
+						}
+						else{
+							$thisSetting = "0";
+						}
+						break;
+						
+					case "showArmies":
+						$thisSetting = explode(",",$_POST[$key]);
+						break;
 				}
+			}
+			
+			if ($key != "settingsMod"){
 				$userSettings[$key] = $thisSetting;
 			}
 		}
 	}
 	file_put_contents($userSettingsPath, json_encode($userSettings));
-	
-	
 	
 	//END OF
 
@@ -173,7 +210,20 @@
 
 	
 	$dataString = file_get_contents("DATA/FALLBACK.JSON");
-	$dataJS = json_decode($dataString);
+	$dataFull = json_decode($dataString);
+	$dataUnits = [];
+	$dataMissiles = [];
+	
+	$locData = json_decode(file_get_contents("DATA/LANG.JSON"), true);
+	
+	foreach($dataFull as $thisUnit){
+		if ($thisUnit->BlueprintType == "UnitBlueprint"){
+			$dataUnits[]=$thisUnit;
+		}
+		else if ($thisUnit->BlueprintType == "ProjectileBlueprint"){
+			$dataMissiles[]=$thisUnit;
+		}
+	}
 	
 	/////////////////////////////////
 	///
@@ -182,12 +232,12 @@
 	/////////////////////////////////
 	
 	if (isset($_GET['id']) && $_GET['id'] != "-1"){
-		$list = explode(',', $_GET['id']);
+		$list = array_unique(explode(',', $_GET['id']));
 		
 		$toCompare = array();
 		
-		for ($i = 0; $i < sizeOf($dataJS); $i++){
-			$element = $dataJS[$i];
+		for ($i = 0; $i < sizeOf($dataUnits); $i++){
+			$element = $dataUnits[$i];
 			$id = $element->Id;
 			
 			foreach($list as $unit){
@@ -237,6 +287,16 @@
 				$description = "unit";
 				if (property_exists($thisUnit, 'Description')){
 					$description = ($thisUnit->Description);
+					$matches = [];
+					if (preg_match ('/(<LOC.*>+)/', $description, $matches)){
+						$line = $matches[0];
+						$line = str_replace('<LOC ', '', $line);
+						$line = str_replace('>', '', $line);
+						$thisLang = $locData[$userSettings['lang']];
+						if (array_key_exists($line, $thisLang)){
+							$description = $thisLang[$line];
+						}
+					}
 				}
 				$inf['Description'] = $description;
 				$inf['Health'] = $thisUnit->Defense->Health;
@@ -261,7 +321,7 @@
 					//TITLE BAND
 						echo '<div style="position:relative;">
 								<div style="margin-right:27px;">
-									'.getUnitTitle($thisUnit).'
+									'.getUnitTitle($thisUnit, $locData, $userSettings['lang']).'
 								</div>
 								<button style="
 											color:red;
@@ -415,7 +475,7 @@
 															text-shadow: 1px 1px black;
 															color:'.getFactionColor($inf['Faction'], 'bright').';"> 
 											[
-												'.$thisAb.'
+												'.attemptTranslation($thisAb, $locData, $userSettings['lang']).'
 											]</div>';
 										
 									}
@@ -530,6 +590,10 @@
 											color:'.getFactionColor($inf['Faction'], 'bright').';">
 											Fuel use time : '.($physics->FuelUseTime).'s
 										</div>';
+									if (property_exists($physics, 'LandSpeedMultiplier') && $physics->LandSpeedMultiplier != 1) echo '
+										<div class ="info" style="color:'.getFactionColor($inf['Faction'], 'bright').';">
+											LandSpeedMultiplier : '.floor(($physics->LandSpeedMultiplier)*100).'%
+										</div>';
 									echo '
 									
 								</div>';
@@ -556,6 +620,10 @@
 									if (property_exists($air, 'CombatTurnSpeed') && $air->CombatTurnSpeed > 0) echo '
 										<div class ="info" style="color:'.getFactionColor($inf['Faction'], 'bright').';">
 											CombatTurnSpeed : '.($air->CombatTurnSpeed).'
+										</div>';
+									if (property_exists($air, 'LayerTransitionDuration') && $air->LayerTransitionDuration > 0) echo '
+										<div class ="info" style="color:'.getFactionColor($inf['Faction'], 'bright').';">
+											LayerTransitionDuration : '.($air->LayerTransitionDuration).'s
 										</div>';
 									echo '
 									</div>
@@ -778,9 +846,19 @@
 											'.($thisWeapon->DisplayName).'
 										</summary>
 										<div class="flexRows">';
+										
+								////GENERIC PROPERTIES TO DISPLAY	
+									
+								$propertiesToDisplay = ['SlavedToBodyArcRange', 'FiringRandomnessWhileMoving', 'FiringRandomness', 'MaxProjectileStorage'];
+								$propertiesToDisplayGreaterThanZero = ['DamageRadius', 'MuzzleVelocity', 'FiringTolerance']; //DISPLAY ONLY IF GREATER THAN 0
+									
+								//END OF
+								
+								
+								//SPECIFICS :
 								if (property_exists($thisWeapon, 'Damage') &&
 									$thisWeapon->Damage > 0){ 
-									echo '<div class="flexColumns">
+									echo '<div class="flexColumns weaponLine">
 											<div class="littleInfo" >
 												Damage
 											</div>
@@ -790,37 +868,19 @@
 											';
 									if (property_exists($thisWeapon, 'RateOfFire')){
 										echo '<div class="littleInfo" style="text-align:right;border-left:1px dotted grey;">
-												DPS
+												Firerate
+											</div>
+											<div class="littleInfoVar" >
+												'.number_format (($thisWeapon->RateOfFire), 2).' /s 
 											</div>';
-										if (property_exists($thisWeapon,'ContinuousBeam') &&
-											$thisWeapon->ContinuousBeam){
-											echo '	<div class="littleInfoVar" >
-												'.format(($thisWeapon->Damage)*($thisWeapon->RateOfFire)).'
-											</div>';
-										}
-										else{
-											echo '	<div class="littleInfoVar" >
-												'.format(($thisWeapon->Damage)/($thisWeapon->RateOfFire)).'
-											</div>';
-										}
 									}
 									echo '
 										</div>';
-								}		
-								if (property_exists($thisWeapon, 'DamageRadius') &&
-									$thisWeapon->DamageRadius > 0){
-									echo '<div class="flexColumns">
-											<div class="littleInfo" style="border-left:1px dotted grey;">
-												Damage radius
-											</div>
-											<div class="littleInfoVar" >
-												'.format($thisWeapon->DamageRadius).'
-											</div>
-										</div>';
-								}
+								}	
+								
 								if (property_exists($thisWeapon,'ContinuousBeam') &&
 									$thisWeapon->ContinuousBeam){
-										echo '<div class="flexColumns">
+										echo '<div class="flexColumns weaponLine">
 												<div class="littleInfo" >
 													Fire cycle
 												</div>
@@ -832,18 +892,19 @@
 								else if (property_exists($thisWeapon, 'RateOfFire') && 
 									property_exists($thisWeapon, 'ProjectilesPerOnFire') &&
 									$thisWeapon->ProjectilesPerOnFire > 1){ 
-									echo '<div class="flexColumns">
+									echo '<div class="flexColumns weaponLine">
 											<div class="littleInfo" >
 												Fire cycle
 											</div>
 											<div class="littleInfoVar" >
-												'.($thisWeapon->ProjectilesPerOnFire).' shots / '.($thisWeapon->RateOfFire).'s
+												'.($thisWeapon->ProjectilesPerOnFire).' projectiles / shot
 											</div>
 										</div>';
-								}				
+								}		
+								
 								if (property_exists($thisWeapon, 'DamageType') &&
 									$thisWeapon->DamageType != "Normal"){ 
-									echo '<div class="flexColumns">
+									echo '<div class="flexColumns weaponLine">
 											<div class="littleInfo" >
 												DamageType
 											</div>
@@ -855,7 +916,7 @@
 										property_exists($thisWeapon, 'NukeOuterRingRadius') &&
 										property_exists($thisWeapon, 'NukeInnerRingDamage') &&
 										property_exists($thisWeapon, 'NukeOuterRingDamage'))){
-										echo '<div class="flexColumns">
+										echo '<div class="flexColumns weaponLine">
 												<div class="littleInfo" >
 													Nuke radius
 												</div>
@@ -863,7 +924,7 @@
 													'.format($thisWeapon->NukeInnerRingRadius).'-'.format($thisWeapon->NukeOuterRingRadius).'
 												</div>
 											</div>';
-										echo '<div class="flexColumns">
+										echo '<div class="flexColumns weaponLine">
 												<div class="littleInfo" >
 													Nuke damage
 												</div>
@@ -915,7 +976,7 @@
 											$moreStyle = 'class="littleInfoVar" style="color:red;';
 											break;
 									}
-									echo '<div class="flexColumns">
+									echo '<div class="flexColumns weaponLine">
 											<div class="littleInfo" style="width:50%;">
 												WeaponCategory
 											</div>
@@ -924,22 +985,10 @@
 											</div>
 										</div>';
 								}
-	
-								if (property_exists($thisWeapon, 'MuzzleVelocity') &&
-									$thisWeapon->MuzzleVelocity > 0){ 
-									echo '<div class="flexColumns">
-											<div class="littleInfo" >
-												MuzzleVelocity
-											</div>
-											<div class="littleInfoVar" >
-												'.($thisWeapon->MuzzleVelocity).'
-											</div>
-										</div>';
-								}	
-	
+									
 								if (property_exists($thisWeapon, 'MaxRadius') &&
 									$thisWeapon->MaxRadius > 0){ 
-									echo '<div class="flexColumns">
+									echo '<div class="flexColumns weaponLine">
 											<div class="littleInfo" >
 												Range
 											</div>
@@ -954,19 +1003,86 @@
 											</div>
 										</div>';
 								}
-	
-								if (property_exists($thisWeapon, 'FiringTolerance') &&
-									$thisWeapon->FiringTolerance > 0){ 
-									echo '<div class="flexColumns">
-											<div class="littleInfo" >
-												FiringTolerance
-											</div>
-											<div class="littleInfoVar" >
-												'.($thisWeapon->FiringTolerance).'°
-											</div>
-										</div>';
-								}	
+									
+								if (property_exists($thisWeapon, 'ProjectileId')){
+									
+									$foundArr = [];
+									$found = preg_match('~(?<=projectiles\/).*(?=\/)~', $thisWeapon->ProjectileId, $foundArr);
+									
+									if ($found){
+										
+										$projectileId = $foundArr[0];
+										
+										if (strlen($projectileId) > 0){
+											
+											foreach($dataMissiles as $thisMissile){
+												if ($thisMissile->Id == strtoupper($projectileId)){
+													if (property_exists($thisMissile, 'Economy')){
+														$eco = $thisMissile->Economy;
+														echo '
+													<div class="flexRows weaponLine" style="margin-bottom:4px;">
+														<div class="littleInfo" style="text-align:center;" >
+															Missile Cost
+														</div>
+														<div class="littleInfoVar"  style="text-align:center;margin:0px;"  >
+														';
+														
+														echo '
+														
+														<div class="flexColumns" style="color:black;" style="text-align:center;" >
+															<div class="energyCost">
+																<img alt="nrg" style="vertical-align:top;" src="IMG/ICONS/energy.png"> '.format($eco->BuildCostEnergy).'
+															</div>
+															<div class="massCost">
+																<img alt="mss" style="vertical-align:top;" src="IMG/ICONS/mass.png"> '.format($eco->BuildCostMass).'
+															</div>
+															<div class="buildTimeCost">
+																<img alt="tim" style="vertical-align:top;" src="IMG/ICONS/time.png"> '.format($eco->BuildTime).'
+															</div>
+														</div>';
+														
+														echo '
+													</div>
+												</div>';
+													}
+													break;
+												}
+											}
+											
+										}
+									}
+								}
 								
+								
+								
+								//END OF
+								
+								//GENERICS :
+								foreach($propertiesToDisplayGreaterThanZero as $thisProp){
+									if (property_exists($thisWeapon, $thisProp) &&
+										$thisWeapon->$thisProp > 0){
+										echo '<div class="flexColumns weaponLine">
+												<div class="littleInfo" style="border-left:1px dotted grey;">
+													'.caseFormat($thisProp).'
+												</div>
+												<div class="littleInfoVar" >
+													'.format($thisWeapon->$thisProp).'
+												</div>
+											</div>';
+									}
+								}	
+								foreach($propertiesToDisplay as $thisProp){
+									if (property_exists($thisWeapon, $thisProp)){
+										echo '<div class="flexColumns weaponLine">
+												<div class="littleInfo" style="border-left:1px dotted grey;">
+													'.caseFormat($thisProp).'
+												</div>
+												<div class="littleInfoVar" >
+													'.format($thisWeapon->$thisProp).'
+												</div>
+											</div>';
+									}
+								}	
 								
 								
 								echo '	</div>
@@ -1183,7 +1299,7 @@
 							*/
 							property_exists($thisUnit->Economy, 'BuildableCategory')){
 					$buildable = [];
-					foreach($dataJS as $unit){
+					foreach($dataUnits as $unit){
 						foreach($thisUnit->Economy->BuildableCategory as $buildableCategory){
 							$buildableRequirements = explode(' ', $buildableCategory);
 							$canBuild = true;
@@ -1226,10 +1342,10 @@
 									</div>';
 							
 							
-							$description = (getTech($buildableUnit)).($buildableUnit->Description);
+							$description = (getTech($buildableUnit)).(attemptTranslation($buildableUnit->Description, $locData, $userSettings['lang']));
 							$name = '';
 							if (property_exists($buildableUnit->General, 'UnitName')){
-								$name = ($buildableUnit->General->UnitName);
+								$name = attemptTranslation($buildableUnit->General->UnitName, $locData,$userSettings['lang']);
 							}
 							echo '
 									<div class="unitName" style="color:'.getFactionColor(($buildableUnit->General->FactionName), "bright").'; width:100%;"
@@ -1304,9 +1420,9 @@
 		
 		//END OF 
 
-		for ($i = 0; $i < sizeOf($dataJS); $i++){
-			//var_dump($dataJS[$i]);
-			$item = $dataJS[$i];
+		for ($i = 0; $i < sizeOf($dataUnits); $i++){
+			
+			$item = $dataUnits[$i];
 			
 			/*
 			if (!property_exists($item, 'StrategicIconName') ||
@@ -1565,11 +1681,14 @@
 						$border = 'border-top: 1px dotted grey;';
 					}				
 					
-					echo '<div style="
-						display: flex;
-						justify-content:flex-start;
-						flex-direction: column;
-						width:25%;
+					
+					$style = 'classicStyle';
+					if ($userSettings['spookyMode']){
+						$style = 'spookyStyle';
+					}
+					
+					echo '<div class="'.$style.'"
+						style="
 						'.$border.'
 						background-color:'.getFactionColor($armyName, "bright").'" >';
 								
@@ -1588,68 +1707,105 @@
 							
 							$position = 'left:0px;bottom:0px;';
 							switch ($userSettings['previewCorner']){
-								case "top left":
+								case "Top left":
 									$position = 'left:0px;top:0px;';
 									break;
 									
-								case "top right":
+								case "Top right":
 									$position = 'right:0px;top:0px;';
 									break;
 									
-								case "bottom right":
+								case "Bottom right":
 									$position = 'right:0px;bottom:0px;';
 									break;
 							}
-							
-							echo '<div class="unitMainDiv tooltip" 
-											style="display:flex;flex-direction:row-reverse;'.$position.'"
+							echo '<div class="unitMainDiv tooltip"
 											id="'.($thisUnit->Id).'" 
-											onClick="toggleSelect(\''.($thisUnit->Id).'\')">
+											onClick="toggleSelect(\''.($thisUnit->Id).'\')">';
+							if ($userSettings['previewCorner'] != "None"){
+								echo '
 									<div class="tooltiptext" style="'.$position.'opacity:0.85; background-color:'.getFactionColor($thisUnit->General->FactionName, "dark").';">
-										'.getUnitTitle($thisUnit).'
-									</div>
-									<div class="unit" 
-										style="
-											display: flex;
-											width:100%;
-											justify-content:flex-start;
-											flex-direction: row;">';
-						
-							$icon = '';
-							if (property_exists($thisUnit, 'StrategicIconName')){
-								$icon = ($thisUnit->StrategicIconName).'_rest';
+										'.getUnitTitle($thisUnit, $locData, $userSettings['lang']).'
+									</div>';
+							}
+							if ($userSettings['spookyMode']){
+								$terrain = 'none';
+								$strategic = 'none';
+								$description = 'unit';
+								if (property_exists($thisUnit, 'StrategicIconName')){
+									$strategic = $thisUnit->StrategicIconName;
+								}
+								if (property_exists($thisUnit->General, 'Icon')){
+									$terrain = $thisUnit->General->Icon;
+								}
+								if (property_exists($thisUnit, 'Description')){
+									$description = ($thisUnit->Description);
+									$matches = [];
+									if (preg_match ('/(<LOC.*>+)/', $description, $matches)){
+										$line = $matches[0];
+										$line = str_replace('<LOC ', '', $line);
+										$line = str_replace('>', '', $line);
+										$thisLang = $locData[$userSettings['lang']];
+										if (array_key_exists($line, $thisLang)){
+											$description = str_replace('"', '', $thisLang[$line]);
+										}
+									}
+								}
+								echo '
+									<div>
+										<div class="previewImg">
+											<img alt="" class="backgroundIconOverlap" src="IMG/PREVIEW_BACKGROUND/'.($terrain).'_up.png">
+											<img alt="?" class="strategicIcon" style= "width:64px;height:64px;" src="IMG/PREVIEW/'.strtoupper($thisUnit->Id).'.png">
+											<img alt="[x]" class="strategicIconOverlap" src="IMG/STRATEGIC/'.($strategic).'_rest.png" style="filter: contrast(70%) sepia(300%) brightness(150%) hue-rotate('.(getFactionColor($thisUnit->General->FactionName, 'hue')-63).'deg) saturate(300%) brightness(70%) contrast(200%) brightness(130%);">
+										</div>
+									</div>';
+							}
+							else {
+								echo '
+										<div class="unit" 
+											style="
+												display: flex;
+												width:100%;
+												justify-content:flex-start;
+												flex-direction: row;">';
+							
+								$icon = '';
+								if (property_exists($thisUnit, 'StrategicIconName')){
+									$icon = ($thisUnit->StrategicIconName).'_rest';
+								}
+								echo '
+										<div style="width:20px; 
+													height:20px;
+													filter: contrast(70%) sepia(300%) brightness(150%) hue-rotate('.(getFactionColor($armyName, 'hue')-63).'deg) saturate(300%) brightness(70%) contrast(200%) brightness(130%);" >
+											<img src="IMG/STRATEGIC/'.$icon.'.png" alt="[x]">
+										</div>';
+								
+								
+								$description = "unit";
+								if (property_exists($thisUnit, 'Description')){
+									$description = attemptTranslation($thisUnit->Description, $locData, $userSettings['lang']);
+								}
+								$description = $techName.($description);
+								$name = '';
+								if (property_exists($thisUnit->General, 'UnitName')){
+									$name = attemptTranslation($thisUnit->General->UnitName, $locData, $userSettings['lang']);
+								}
+								echo '
+										<div class="unitName" style="width:100%;">
+											<span class="unitHotLink" onclick="seeUnit(\''.$id.'\')">
+											'.($description).'
+											</span>
+											<span style="
+												font-weight:bold; 
+												font-style:italic;
+												color:'.getFactionColor($armyName, "dark").'">'.
+												($name).'
+											</span>
+										</div>';
+								
+								echo '</div>';
 							}
 							echo '
-									<div style="width:20px; 
-												height:20px;
-												filter: contrast(70%) sepia(300%) brightness(150%) hue-rotate('.(getFactionColor($armyName, 'hue')-63).'deg) saturate(300%) brightness(70%) contrast(200%) brightness(130%);" >
-										<img src="IMG/STRATEGIC/'.$icon.'.png" alt="[x]">
-									</div>';
-							
-							
-							$description = "unit";
-							if (property_exists($thisUnit, 'Description')){
-								$description = ($thisUnit->Description);
-							}
-							$description = $techName.($description);
-							$name = '';
-							if (property_exists($thisUnit->General, 'UnitName')){
-								$name = ($thisUnit->General->UnitName);
-							}
-							echo '
-									<div class="unitName" style="width:100%;">
-										<span class="unitHotLink" onclick="seeUnit(\''.$id.'\')">
-										'.($description).'
-										</span>
-										<span style="
-											font-weight:bold; 
-											font-style:italic;
-											color:'.getFactionColor($armyName, "dark").'">'.
-											($name).'
-										</span>
-									</div>';
-							
-							echo '</div>
 							</div>';
 						}
 					}
@@ -1716,25 +1872,65 @@
 		<div class="flexRows" style="width:100%;text-align:center;margin-bottom:32px;">
 			<form action="index.php" method="POST" name="settingsMod">
 			<?php 
-				foreach($userSettings as $settingName=>$settingValue){
-					
-					if(is_array($settingValue)){
-						$settingValue = '<input type="text" name="'.$settingName.'" value=\''.json_encode($settingValue).'\'/>';
+				foreach($defaultSettings as $settingName=>$settingValue){
+					if (array_key_exists($settingName, $userSettings)){
+						$settingValue = $userSettings[$settingName];
 					}
-					else if (is_bool($settingValue)){
+					//Specific...
+					if ($settingName == "previewCorner"){
+						$options = ["Top left", "Top right", "Bottom right", "Bottom left", "None"];
+						$settingValue = '
+							<select style="width:100%;text-align:center;" name="'.$settingName.'">';
+						foreach($options as $thisOpt){
+							$select = '';
+							if ($thisOpt == $userSettings[$settingName]){
+								$select = "selected";
+							}
+							$settingValue.= '
+								<option '.$select.' value="'.$thisOpt.'">'.$thisOpt.'</option>';
+							
+						}
+								
+						$settingValue .='	
+							</select>';
+					}
+					else if ($settingName == "lang"){
+						$options = $locData;
+						$settingValue = '
+							<select style="width:100%;text-align:center;" name="'.$settingName.'">';
+						foreach($options as $locName=>$x){
+							$select = '';
+							if (array_key_exists($settingName, $userSettings) && $locName == $userSettings[$settingName]){
+								$select = "selected";
+							}
+							$settingValue.= '
+								<option '.$select.' value="'.$locName.'">'.$locName.'</option>';
+							
+						}
+								
+						$settingValue .='	
+							</select>';
+					}
+					else if ($settingName == "autoExpand" || $settingName == "spookyMode"){
 						$checked = "";
+
 						if ($settingValue){
 							$checked = "checked";
 						}
-						$settingValue = '<input name="'.$settingName.'" type="checkbox" '.$checked.' />'; 
-					}		
+						$settingValue = '<input style="width:100%;text-align:center;" name="'.$settingName.'" type="checkbox" '.$checked.' />'; 
+					}	
+					
+					//Generic
+					else if(is_array($settingValue)){
+						$settingValue = '<input style="width:100%; type="text" name="'.$settingName.'" value="'.implode(",",$settingValue).'"/>';
+					}	
 					else{
-						$settingValue = '<input name="'.$settingName.'" type="text" value=\''.($settingValue).'\'/>';
+						$settingValue = '<input style="width:100%;text-align:center;" name="'.$settingName.'" type="text" value=\''.($settingValue).'\'/>';
 					}
 					echo '
 				<div class="flexColumns" style="margin:32px;margin-top:8px;margin-bottom:8px;">
 					<div style="text-align:left;width:50%;margin:8px;">
-						'.$settingName.'
+						'.caseFormat($settingName).'
 					</div>
 					<div style="text-align:right;width:50%;margin:8px;">
 						'.$settingValue.'
@@ -1810,10 +2006,10 @@
 	function insertAtPosition($string, $insert, $position) {
 		return implode($insert, str_split($string, $position));
 	}
-	function getUnitTitle($unit){
+	function getUnitTitle($unit, $locData=null, $lang='US'){
 		$nickname = '';
 		if (property_exists($unit->General, 'UnitName')){
-			$nickname = '"'.($unit->General->UnitName).'" ';
+			$nickname = '"'.attemptTranslation($unit->General->UnitName, $locData, $lang).'" ';
 		}
 		$terrain = 'none';
 		$strategic = 'none';
@@ -1825,7 +2021,7 @@
 			$terrain = $unit->General->Icon;
 		}
 		if (property_exists($unit, 'Description')){
-			$description = ($unit->Description);
+			$description = attemptTranslation($unit->Description, $locData, $lang);
 		}
 		return '<div class="unitTitleBar" style="border-top:1px solid white;">
 					<div class="previewImg">
@@ -1872,6 +2068,36 @@
 	function is_JSON($args) {
 		json_decode($args);
 		return (json_last_error()===JSON_ERROR_NONE);
+	}
+	
+	function caseFormat($string){
+		$array = str_split($string);
+		foreach($array as $key=>$letter){
+			if ($key == 0){
+				$letter = strtoupper($letter);
+			}
+			else if (ctype_lower($array[$key-1]) && ctype_upper($letter)){
+				$letter = ' '.$letter;
+			}
+			$array[$key] = $letter;
+		}
+		return implode('', $array);
+	}
+	
+	function attemptTranslation($string, $locData, $lang){
+		$matches = [];
+		if (preg_match ('/(<LOC.*>+)/', $string, $matches)){
+			$line = $matches[0];
+			$line = str_replace('<LOC ', '', $line);
+			$line = str_replace('>', '', $line);
+			$thisLang = $locData[$lang];
+			if (array_key_exists($line, $thisLang)){
+				$string = str_replace('"', '', $thisLang[$line]);
+			}
+		}	
+		$string = preg_replace ('/(<LOC.*>+)/', '', $string);
+		
+		return $string;
 	}
 	
 	?>
