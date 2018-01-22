@@ -30,7 +30,7 @@ button{
     text-align: left;
     padding: 5px;
     position: fixed;
-    z-index: 1;
+    z-index: 10;
 }
 
 .tooltip:hover .tooltiptext {
@@ -85,12 +85,13 @@ input[type=checkbox]{
 .spookyStyle .unitMainDiv{
 	height:64px;
 }
-.spookyStyle .unitMainDiv:hover{
+
+.spookyStyle .unitMainDiv:hover div .previewImg{
 	opacity:0.75;
 	background-color:white;
 }
-.spookyStyle .unitSelected{
-	filter:brightness(500%);
+.spookyStyle .unitSelected div .previewImg{
+	filter:brightness(300%);
 }
 .unitMainDiv:hover{
 	font-weight:bold;

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-	<LINK href="STYLE.CSS?version=2" rel="stylesheet" type="text/css">
+	<LINK href="STYLE.CSS?version=3" rel="stylesheet" type="text/css">
 	<link rel="icon" href="favicon.ico" />
 	<title>SCFA Unit list</title>
 
@@ -1801,6 +1801,10 @@
 												font-style:italic;
 												color:'.getFactionColor($armyName, "dark").'">'.
 												($name).'
+											</span>
+											<span style="
+												color:'.getFactionColor($armyName, "bright").';">
+												Compare...
 											</span>
 										</div>';
 								

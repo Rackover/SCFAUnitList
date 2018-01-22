@@ -1,3 +1,10 @@
+<script>
+
+		function hideUpdateMenu(){
+			document.getElementById('updateMenu').style.display = "none";
+		}
+
+</script>
 
 
 	<?php
@@ -33,9 +40,7 @@
 		({)(\s*(\s*'(\w|\<|\>|_| )*',*)+),\s*(})
 	
 	*/
-	include('RES/SCRIPTS/luaToPhp.php');
-	
-	
+	require('RES/SCRIPTS/luaToPhp.php');
 	
 	function rrmdir($src) {
 		if (file_exists($src)){
@@ -99,36 +104,57 @@
 	$toExtract = json_decode(file_get_contents('CONFIG/DATAFILES.JSON'));
 	$toExtractLoc = json_decode(file_get_contents('CONFIG/LOCFILES.JSON'));
 	
+	$debug = false;
+	
+	if (isset($_GET['debug'])){
+		$debug = $_GET['debug'];
+		echo '<div style="color:orange;background-color:#111111;font-family:Consolas;padding:8px;">';
+	}
+	
 	file_put_contents("CONFIG/UPDATE.TMP", "If this file is present, either the database is updating or the last update failed.");	
 	set_time_limit(120);
 	
 	//STEP 1 : UNZIP DATA
+	
+	if ($debug) echo '<p>STEP 1 ----- </p>';	////////DEBUG
+	
 	$failed = 0;
 	for ($h = 0; $h < sizeOf($toExtract); $h ++){
 		$zip = new ZipArchive;
 		if ($zip->open(''.($toExtract[$h]).'') === TRUE) {	
+			if ($debug) echo '<p>-> Opened archive '.$toExtract[$h].' and found '.($zip->numFiles).' files. </p>';	////////DEBUG
 			for ($i=0; $i<$zip->numFiles;$i++) {
 				$name = $zip->statIndex($i)['name'];
+				//if ($debug) echo '<p>--> Found file '.$name.'</p>';	////////DEBUG
 				if (strpos($name, '.bp') !== false){
-					$zip->extractTo('DATA/_TEMP/'.$toExtract[$h].'/',$name);	//Ex : extracts "units.scd.3599" to /DATA/GAMEDATA/_TEMP/units.scd.3599
+					if ($debug) echo '<p>---> Extracting '.$name.' to DATA/_TEMP/'.$toExtract[$h].'/ ...</p>';	////////DEBUG
+					$success = $zip->extractTo('DATA/_TEMP/'.$toExtract[$h].'/',$name);	//Ex : extracts "units.scd.3599" to /DATA/GAMEDATA/_TEMP/units.scd.3599
+					if (!$success){
+						if ($debug) echo '<p>----> Extraction FAILED !</p>';	////////DEBUG
+						if ($debug) echo '<p>----> Error : '.error_get_last()['message'].'</p>';	////////DEBUG
+					}
 				}
 			}
 			$zip->close();
 		} else {
+			if ($debug) echo '<p>-> FAILED opening archive '.$toExtract[$h].' </p>';	////////DEBUG
 			$failed++;
 		}
 	}
 	if ($failed > 0){
-		//echo $failed.' data file.s could not be extracted or updated. Falling back to default values.';
+		if ($debug) echo '<p> -> '.$failed.' files could not be extracted. </p>';	////////DEBUG
 	}
 	
 	//LOC -->
 	$failed = 0;
+	if ($debug) echo '<p>-> Opening LOC Files... </p>';	////////DEBUG
 	foreach($toExtractLoc as $locArch){
 			
 		$zip = new ZipArchive;
 		
 		if ($zip->open(''.($locArch).'') === TRUE) {
+			
+			if ($debug) echo '<p>-> Opened LOC archive '.$locArch.' and found '.($zip->numFiles).' files. </p>';	////////DEBUG
 			
 			for ($i=0; $i<$zip->numFiles;$i++) {
 				$name = $zip->statIndex($i)['name'];
@@ -141,32 +167,41 @@
 		} 
 		
 		else {
+			if ($debug) echo '<p>-> FAILED opening LOC archive '.$locArch.' </p>';	////////DEBUG
 			$failed++;
 		}
+	}
+	if ($failed > 0){
+		if ($debug) echo '<p> ->'.$failed.' LOC files could not be extracted. </p>';	////////DEBUG
 	}
 	//endof
 	
 	//STEP 2 : MERGING FILES
+	if ($debug) echo '<p>------------ </p>';	////////DEBUG
+	if ($debug) echo '<p>STEP 2 ----- </p>';	////////DEBUG
 	$idsUnitsList = [];
 	$finalLangs = [];
 	$dir = 'DATA/_TEMP/';
 	if (is_dir($dir)){
-		
+		if ($debug) echo '<p>-> Directory '.$dir.' found </p>';	////////DEBUG
 		foreach($toExtract as $fileFolder) { //For every PAK to use, like units.3599.scd or units.nx2
 			$realPath = $dir.$fileFolder;
+			if ($debug) echo '<p>-> Working on '.$realPath.'</p>';	////////DEBUG
 			
 			$skipping = false;
 			if (!is_dir($realPath)){
+				if ($debug) echo '<p>--> No directory, SKIPPING </p>';	////////DEBUG
 				continue;
 			}
-			
 			$dirs = scandirVisible($realPath);
 			$thisPakUnitsList = [];
+			$totalFound = 0;
 			
 			foreach($dirs as $thisDirectory){	//For every subfolder of the PAK, like "/units" or "/projectiles"
 				
 				$unitList = scandirVisible($realPath.'/'.$thisDirectory);
 				$thisSubfolderUnitsList = [];
+				$units = 0;
 				
 				foreach($unitList as $thisUnit){ // For every unit inside this folder.
 					$thisUnit = strtoupper($thisUnit);
@@ -175,6 +210,7 @@
 					$thisUnitFile = $thisUnitDirectory.'/'.$thisUnit.'_unit.bp';
 					$thisMissileFile = $thisUnitDirectory.'/'.$thisUnit.'_proj.bp';
 					$proj = false;
+			
 					
 					if (file_exists($thisMissileFile)){
 						$proj = true;
@@ -187,7 +223,9 @@
 					if (file_exists($file)){
 						$blueprint = file_get_contents($file);
 						$blueprint = makePhpArray(prepareForConversion($blueprint));
+						//var_dump("3");
 						$blueprint['Id'] = ($thisUnit);
+						// var_dump("4");
 						if ($proj){
 							$blueprint['BlueprintType'] = 'ProjectileBlueprint';
 						}
@@ -195,33 +233,31 @@
 							$blueprint['BlueprintType'] = 'UnitBlueprint';
 						}
 						$thisSubfolderUnitsList[$thisUnit]= $blueprint;	//Key is ID
+						$units++;
 						//echo '--> Found unit '.$thisUnit.'<br>';
 					}
 					
 				}
-				/*
-				echo "PRE-REPLACE<br>";
-				var_dump($thisPakUnitsList);
-				echo "REPLACE WITH<br>";
-				var_dump($thisSubfolderUnitsList);
-				*/
+				if ($debug) echo '<p>--> Found '.$units.' units in directory '.$thisDirectory.'</p>';	////////DEBUG
+				$totalFound += $units;
 				$thisPakUnitsList = array_merge($thisPakUnitsList, $thisSubfolderUnitsList);
-				/*
-				echo "POST-REPLACE<br>";
-				var_dump($thisPakUnitsList);
-				*/
 			}
 			
 			//$o = $idsUnitsList;
+			if ($debug) echo '<p>-> Total units found for pak '.$realPath.' : '.$totalFound.' </p>';	////////DEBUG
 			$idsUnitsList = array_merge($idsUnitsList, $thisPakUnitsList);
 			
 		}
 		
 		//LOC
+		$totalLines = 0;
 		foreach($toExtractLoc as $locFolder){
 			$realPath = $dir.$locFolder;
 			
+			if ($debug) echo '<p>-> Working on LOC '.$realPath.'</p>';	////////DEBUG
+			
 			if (!is_dir($realPath)){
+				if ($debug) echo '<p>--> No directory, SKIPPING </p>';	////////DEBUG
 				continue;
 			}
 			
@@ -232,6 +268,7 @@
 				
 				$langs = scandirVisible($realPath.'/'.$thisDirectory);
 				$thisSubfolderLocList = [];
+				$foundLines = 0;
 				
 				foreach($langs as $thisLang){ // For every LANG inside the folder
 					$thisLang = strtoupper($thisLang);
@@ -243,20 +280,32 @@
 						$lines = file_get_contents($file);
 						$lines = locfileToPhp($lines);
 						$thisSubfolderLocList[$thisLang]= $lines;
+						$foundLines++;
 						//echo '--> Found lang '.$thisLang.'<br>';
 					}
 					
 				}
+				if ($debug) echo '<p>--> Found '.$foundLines.' lines in directory '.$thisDirectory.'</p>';	////////DEBUG
+				$totalLines += $foundLines;
 				$thisPakLangs = array_merge($thisPakLangs, $thisSubfolderLocList);
 			}
 			
+			if ($debug) echo '<p>-> Total units found for LOC '.$realPath.' : '.$totalLines.' </p>';	////////DEBUG
 			$finalLangs = array_merge($finalLangs, $thisPakLangs);
 			
 		}
 	//ENDOF
 	}
+	else{
+		if ($debug) echo '<p>'.$dir.' not found. EXITING !</p>';	////////DEBUG
+		exit;
+	}
+					
 	
 	//STEP 3 : MAKING JSON
+	if ($debug) echo '<p>------------ </p>';	////////DEBUG
+	if ($debug) echo '<p>STEP 3 ----- </p>';	////////DEBUG
+	
 	$finalUnitList = [];
 	foreach($idsUnitsList as $thisUnit){
 		$finalUnitList[]= $thisUnit;
@@ -265,18 +314,26 @@
 	file_put_contents('DATA/LANG.JSON', json_encode($finalLangs));
 	
 	//STEP 4 : CLEANING UP
+	if ($debug) echo '<p>------------ </p>';	////////DEBUG
+	if ($debug) echo '<p>STEP 4 ----- </p>';	////////DEBUG
+	
+	if ($debug) echo '<p>-> Beginning '.$dir.' cleanup </p>';
+	
 	if (is_dir($dir)){
 		$files = scandir($dir);
 		foreach($files as $unit) {
+			if ($debug) echo '<p>-> Removing '.$dir.'/'.$unit.' </p>';	////////DEBUG
 			rrmdir($dir.'/'.$unit);
 		};
 	}
-	
-	//echo '</div>';
-	
 	//exit;
 	
 	unlink("CONFIG/UPDATE.TMP");
+	
+	if ($debug) echo '<p>Unliked UPDATE.TMP - all operations complete.</p>';	////////DEBUG
+	
+	if ($debug) echo '</div>';	////////DEBUG
+	
 	
 	?>
 

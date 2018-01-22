@@ -1,3 +1,5 @@
+
+
 <?php
 /***********************************************************************************
  *
@@ -115,7 +117,7 @@ function luaparser($lua, &$pos){
 			$stop=true;
 		  }
 		  if (array_key_exists($i, $lua)) {
-				$strs = explode("=",utf8_decode($lua[$i]));
+				$strs = explode("=",($lua[$i]));
 				//var_dump($strs);
 		  }
 		  if (array_key_exists(1, $strs) && trim($strs[1]) == "{"){
