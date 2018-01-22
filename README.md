@@ -16,19 +16,29 @@ PHP 5.6 or 7
 ```
 If you have a LAMP server, it's more than enough.
 
+For up-to-date unit data you will have to provide your own data (game files .SCD or .NX2). More info in the "Installing" part of this readme.
+
 ####     Clientside :
-```
+
 Any browser capable of rendering HTML5 and executing basic javascript.
-Tested with Vivaldi and with Chrome.
-```
+Tested with Vivaldi, Firefox and with Chrome.
+
+Firefox kind of lags a bit due to the huge amount of elements on the page : disabling previews in the settings can help reducing lag on some browser.
 
 ### Installing
 
-Just download all the files and put them in your server's folder. 
+First download all the files and put them in your server's folder. 
 With a LAMP server it'll be something like :
 ```
 /var/www/html
 ```
+You can put them pretty much wherever you want, as most of the code uses relative paths.
+
+Once you've done that, you can edit the `FILES.JSON` file to link the database to the game files. By default, the game is linked to .3599 files in the `DATA/GAMEDATA` folder. You can add more files in the list, and they will be loaded in the order specified. Two things to note here :
+* Keep in mind that uncompressing data and analyzing it will be done in PHP, therefore these operations must not take more than *120 seconds* combined : else it will break and exit before writing any change. 
+* You should always keep the .3599 file to be loaded somewhere (in first) as it is very complete, and if the data you load after it lacks unit, the unitDB will fall back to 3599 files. If you don't mount these files before anything else, stuff will probably be missing. 
+
+
 ## Authors
 
 * [rackover@racknet.noip.me](https://github.com/Rackover)
@@ -43,6 +53,7 @@ Thanks to :
   JJ, 
   Exotic-retard, 
   Petric, 
+  MrShiny1,
   and Zook for general help and feedback
 
 ## License
@@ -52,8 +63,4 @@ This project is licensed under the Beerware license. See the [LICENSE](LICENSE) 
 ## Acknowledgments
 
 * All the code for this one db has been made from scratch using nothing more than my bare hands : no code have been taken neither from  [Spooky's DB](https://github.com/spooky/unitdb), nor from the *official* unitDB.
-* All the sprites and logos and fonts used in this project either come directly from the game files, or are vanilla Windows fonts (except for the FA Forever logo, used as a favicon). But I must credit [Spooky's DB](https://github.com/spooky/unitdb) nevertheless, as I was too lazy to rip some game textures and got them directly from Spooky's git.
-
-## Todo list
-
-For now the thing loads data from a [DATA/UNITS_COMPLETE.JSON](UNIT.JSON) file, which needs to be generated from the game blueprints using tools from Spooky's repository. Next thing to do is to make them load directly from the game files ! Which should be a big thing. We'll see.
+* All the sprites and logos and fonts used in this project either come directly from the game files, or are vanilla Windows fonts (except for the FA Forever logo, used as a favicon).
