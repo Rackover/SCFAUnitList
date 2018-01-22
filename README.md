@@ -38,6 +38,7 @@ Once you've done that, you can edit the `FILES.JSON` file to link the database t
 * Keep in mind that uncompressing data and analyzing it will be done in PHP, therefore these operations must not take more than *120 seconds* combined : else it will break and exit before writing any change. 
 * You should always keep the .3599 file to be loaded somewhere (in first) as it is very complete, and if the data you load after it lacks unit, the unitDB will fall back to 3599 files. If you don't mount these files before anything else, stuff will probably be missing. 
 
+`LOCFILES.JSON` works the same way, but for localization files (.scd).
 
 ## Authors
 
