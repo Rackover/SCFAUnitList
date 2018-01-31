@@ -151,12 +151,8 @@
 	
 
 	//SPECIFICS SETTINGS LOAD
-	$dirPath = 'CONFIG/USERS/'.str_replace(':','-',$_SERVER['REMOTE_ADDR']).'_'.md5( $_SERVER['HTTP_USER_AGENT']);
+	$cookieName = str_replace(':','-',$_SERVER['REMOTE_ADDR']).'_'.md5( $_SERVER['HTTP_USER_AGENT']);
 	
-	$userSettingsPath = ($dirPath.'/SPECIFICS.JSON');
-	if (!is_dir($dirPath)){
-		mkdir($dirPath);
-	}
 	$defaultSettings = array(
 		"showArmies"=>['Aeon','UEF','Cybran','Seraphim'],
 		"previewCorner"=>"bottom left",
@@ -164,20 +160,19 @@
 		"spookyMode"=>"0",
 		"lang"=>"US"
 	);
-	if (file_exists($userSettingsPath)){
-		$userSettings = json_decode(file_get_contents($userSettingsPath), true);
-		if (is_array($userSettings)){
-			$userSettings = array_replace($defaultSettings, $userSettings);
-		}
-	}
+	$userSettings = $defaultSettings;
+	
 	if (isset($_GET["settings64"])){
 		$userSettings = json_decode(base64_decode($_GET["settings64"]), true);
 		if (is_array($userSettings)){
 			$userSettings = array_replace($defaultSettings, $userSettings);
 		}
 	}
-	else{
-		$userSettings = $defaultSettings;
+	if (isset($_COOKIE[$cookieName]) && (!isset($_GET["nocookies"]) || $_GET["nocookies"] != "1")){
+		$userSettings = json_decode($_COOKIE[$cookieName], true);
+		if (is_array($userSettings)){
+			$userSettings = array_replace($defaultSettings, $userSettings);
+		}
 	}
 	if (isset($_POST['settingsMod'])){
 		foreach($defaultSettings as $key=>$thisSetting){
@@ -211,7 +206,7 @@
 			}
 		}
 	}
-	file_put_contents($userSettingsPath, json_encode($userSettings));
+	setcookie($cookieName, json_encode($userSettings), 86400*90);
 	
 	//END OF
 
