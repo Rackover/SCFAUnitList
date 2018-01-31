@@ -7,6 +7,55 @@
 	<title>SCFA Unit list</title>
 
 </head>
+	<?php
+		//clean url
+		$strArgs = $_SERVER['QUERY_STRING'];
+		
+		if ($strArgs != ""){
+			
+			$argList = explode("&", $strArgs);
+			
+			$arguments = [];
+			
+			foreach($argList as $thisArgument){
+				if ($thisArgument == ''){
+					continue;
+				}
+				$thisExploded = explode("=", $thisArgument);
+				$argName = $thisExploded[0];
+				$argVal = $thisExploded[1];
+				$arguments[$argName] = $argVal;
+			}
+			
+			$finalArgString = '?';
+			$iterator = 0;
+			foreach($arguments as $key=>$value){
+				if ($iterator > 0){
+					$finalArgString .= "&";
+				}
+				$finalArgString .= $key."=".$value;
+				$iterator++;
+			}
+			
+			$cleanURL = $_SERVER['SCRIPT_NAME'].$finalArgString;
+			
+		}
+		
+		else{
+			$cleanURL = $_SERVER['SCRIPT_NAME'];
+		}
+		//End of
+		
+		
+		//url
+		$url = (isset($_SERVER['HTTPS']) ? "https" : "http") . "://".$_SERVER['HTTP_HOST'].$cleanURL."";
+		
+		$s = "?";
+		if (count($_GET)){
+			$s = "&";
+		}
+		
+	?>
   <BODY>
 	<script>
 		function hideUpdateMenu(){
@@ -46,7 +95,7 @@
 				unitArr.splice(index, 1);
 			}
 			if (unitArr.length < 1){
-				window.location.href = "<?php echo basename(__FILE__);?>";
+				window.location.href = "<?php echo $url;?>";
 			}
 			else{
 				seeUnit(unitArr.join(','));
@@ -74,7 +123,7 @@
 			if (id == "" || id == null){
 				id = -1;
 			}
-			window.location.href = "<?php echo basename(__FILE__);?>?id="+id;
+			window.location.href = "<?php echo $url.$s;?>id="+id;
 		}
 		function toggleSelect(div_id){
 			let line = document.getElementById(div_id);
@@ -118,7 +167,7 @@
 		}
 	</script>
 	<?php	
-		
+	
 	//SETTINGS LOAD
 	
 	$settingsString = "CONFIG/SETTINGS.JSON";
@@ -1878,7 +1927,7 @@
 			Settings
 		</div>
 		<div class="flexRows" style="width:100%;text-align:center;margin-bottom:32px;">
-			<form action="index.php" method="POST" name="settingsMod">
+			<form action="<?php echo $url;?>" method="POST" name="settingsMod">
 			<?php 
 				foreach($defaultSettings as $settingName=>$settingValue){
 					if (array_key_exists($settingName, $userSettings)){
