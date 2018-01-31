@@ -166,7 +166,15 @@
 	);
 	if (file_exists($userSettingsPath)){
 		$userSettings = json_decode(file_get_contents($userSettingsPath), true);
-		$userSettings = array_replace($defaultSettings, $userSettings);
+		if (is_array($userSettings)){
+			$userSettings = array_replace($defaultSettings, $userSettings);
+		}
+	}
+	if (isset($_GET["settings64"])){
+		$userSettings = json_decode(base64_decode($_GET["settings64"]), true);
+		if (is_array($userSettings)){
+			$userSettings = array_replace($defaultSettings, $userSettings);
+		}
 	}
 	else{
 		$userSettings = $defaultSettings;
@@ -1969,7 +1977,7 @@
 				$color['normal'] = "grey";
 				$color['bright'] = "lightgrey";
 				$color['dark'] = "#222222";
-				$color['hue'] = 220;
+				$color['hue'] = 300;
 				break;
 		
 			case "Cybran" :
@@ -1997,7 +2005,7 @@
 				$color['normal'] = "#87D37C";
 				$color['bright'] = "#C8F7C5";
 				$color['dark'] = "#004d00";
-				$color['hue'] = 104;
+				$color['hue'] = 150;
 				break;
 		}
 		return $color[$tint];
