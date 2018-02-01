@@ -1,3 +1,79 @@
+<?php 
+
+	///////////////////////////////////////
+	///									///
+	///				UNITDB - v2			///
+	///									///
+	///////////////////////////////////////
+
+	//Cookie management must be done before everything else for security reasons....html5
+	
+
+	//SPECIFICS SETTINGS LOAD
+	$cookieName = str_replace(':','-',$_SERVER['REMOTE_ADDR']).'_'.md5( $_SERVER['HTTP_USER_AGENT']);
+	$cookieName = "unitDB-settings";
+
+	$defaultSettings = array(
+		"showArmies"=>['Aeon','UEF','Cybran','Seraphim'],
+		"previewCorner"=>"bottom left",
+		"autoExpand"=>"0",
+		"spookyMode"=>"0",
+		"lang"=>"US"
+	);
+	$userSettings = $defaultSettings;
+
+	if (isset($_GET["settings64"])){
+		$userSettings = json_decode(base64_decode($_GET["settings64"]), true);
+		if (is_array($userSettings)){
+			$userSettings = array_replace($defaultSettings, $userSettings);
+		}
+	}
+	if (isset($_COOKIE[$cookieName]) && (!isset($_GET["nocookies"]) || $_GET["nocookies"] != "1")){
+		$userSettings = json_decode($_COOKIE[$cookieName], true);
+		if (is_array($userSettings)){
+			$userSettings = array_replace($defaultSettings, $userSettings);
+		}
+	}
+	if (isset($_POST['settingsMod'])){
+		foreach($defaultSettings as $key=>$thisSetting){
+			if (!isset($_POST[$key])){
+				$userSettings[$key] = $defaultSettings[$key];
+			}
+			else{
+				switch ($key){
+					default:
+						$thisSetting = $_POST[$key];
+						break;
+					
+					case "autoExpand":
+					case "spookyMode":
+						if (array_key_exists($key, $_POST) && $_POST[$key] == "on"){
+							$thisSetting = "1";
+						}
+						else{
+							$thisSetting = "0";
+						}
+						break;
+						
+					case "showArmies":
+						$thisSetting = explode(",",$_POST[$key]);
+						break;
+				}
+			}
+			
+			if ($key != "settingsMod"){
+				$userSettings[$key] = $thisSetting;
+			}
+		}
+		setcookie($cookieName, json_encode($userSettings), time()+86400*90);
+	}
+	
+	//END OF
+?>
+
+
+
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -166,7 +242,9 @@
 			document.getElementById(id_button).setAttribute("selected", "selected");
 		}
 	</script>
-	<?php	
+
+<?php
+	
 	
 	//SETTINGS LOAD
 	
@@ -193,74 +271,9 @@
 		</div>';
 		}
 	}
-	file_put_contents($settingsString, json_encode($settings));
-		
-	
+	file_put_contents($settingsString, json_encode($settings));	
 	//END OF
 	
-
-	//SPECIFICS SETTINGS LOAD
-	$cookieName = str_replace(':','-',$_SERVER['REMOTE_ADDR']).'_'.md5( $_SERVER['HTTP_USER_AGENT']);
-	
-	$defaultSettings = array(
-		"showArmies"=>['Aeon','UEF','Cybran','Seraphim'],
-		"previewCorner"=>"bottom left",
-		"autoExpand"=>"0",
-		"spookyMode"=>"0",
-		"lang"=>"US"
-	);
-	$userSettings = $defaultSettings;
-	
-	if (isset($_GET["settings64"])){
-		$userSettings = json_decode(base64_decode($_GET["settings64"]), true);
-		if (is_array($userSettings)){
-			$userSettings = array_replace($defaultSettings, $userSettings);
-		}
-	}
-	if (isset($_COOKIE[$cookieName]) && (!isset($_GET["nocookies"]) || $_GET["nocookies"] != "1")){
-		$userSettings = json_decode($_COOKIE[$cookieName], true);
-		if (is_array($userSettings)){
-			$userSettings = array_replace($defaultSettings, $userSettings);
-		}
-	}
-	if (isset($_POST['settingsMod'])){
-		foreach($defaultSettings as $key=>$thisSetting){
-			if (!isset($_POST[$key])){
-				$userSettings[$key] = $defaultSettings[$key];
-			}
-			else{
-				switch ($key){
-					default:
-						$thisSetting = $_POST[$key];
-						break;
-					
-					case "autoExpand":
-					case "spookyMode":
-						if (array_key_exists($key, $_POST) && $_POST[$key] == "on"){
-							$thisSetting = "1";
-						}
-						else{
-							$thisSetting = "0";
-						}
-						break;
-						
-					case "showArmies":
-						$thisSetting = explode(",",$_POST[$key]);
-						break;
-				}
-			}
-			
-			if ($key != "settingsMod"){
-				$userSettings[$key] = $thisSetting;
-			}
-		}
-	}
-	setcookie($cookieName, json_encode($userSettings), 86400*90);
-	
-	//END OF
-
-
-
 	
 	$dataString = file_get_contents("DATA/FALLBACK.JSON");
 	$dataFull = json_decode($dataString);
@@ -878,7 +891,6 @@
 				//WEAPONS
 				else if ($thisComponent == "Weapon"){
 					
-					//var_dump($thisUnit);
 					if (property_exists($thisUnit, "Weapon")){
 						echo '<div class="sheetSection">
 								<div class="smallTitle"  style="color:'.getFactionColor($inf['Faction'], 'bright').';">
