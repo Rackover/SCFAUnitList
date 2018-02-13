@@ -248,6 +248,7 @@
 	
 	//SETTINGS LOAD
 	
+	/*
 	$settingsString = "CONFIG/SETTINGS.JSON";
 	$settings = array(
 		"lastUpdate"=>time(),
@@ -256,7 +257,7 @@
 	if (file_exists($settingsString)){
 		$settings = json_decode(file_get_contents($settingsString), true);
 	}
-
+	
 	if (($settings["lastUpdate"] + $settings["every"]) < time() ){
 		if (!file_exists("CONFIG/UPDATE.TMP")){
 			include("update.php");
@@ -271,7 +272,8 @@
 		</div>';
 		}
 	}
-	file_put_contents($settingsString, json_encode($settings));	
+	*/
+	//file_put_contents($settingsString, json_encode($settings));	
 	//END OF
 	
 	

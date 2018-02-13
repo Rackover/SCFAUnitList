@@ -44,19 +44,23 @@
 	
 	function rrmdir($src) {
 		if (file_exists($src)){
-			$dir = opendir($src);
-			while($dir !== false && false !== ( $file = readdir($dir)) ) {
-				if (( $file != '.' ) && ( $file != '..' )) {
-					$full = $src . '/' . $file;
-					if ( is_dir($full) ) {
+			// echo '<p>--> Found '.$src.' [Exists] </p>';	////////DEBUG
+			
+			if (is_dir($src)){
+				$ls = scandirVisible($src);
+				foreach($ls as $thisSub){
+					if ($thisSub != "." && $thisSub != ".."){
+						$full = $src.'/'.$thisSub;
 						rrmdir($full);
-					}
-					else {
-						unlink($full);
 					}
 				}
 			}
-			closedir($dir);
+			else { 
+				// echo '<p>--> Not a directory ("'.$src.'"), unlinking </p>';	////////DEBUG
+				unlink($src);
+			}
+			
+			// echo '<p>--> Removing source "'.$src.'" </p>';	////////DEBUG
 			rmdir($src);
 		}
 	}
@@ -320,10 +324,10 @@
 	if ($debug) echo '<p>-> Beginning '.$dir.' cleanup </p>';
 	
 	if (is_dir($dir)){
-		$files = scandir($dir);
+		$files = scandirVisible($dir);
 		foreach($files as $unit) {
-			if ($debug) echo '<p>-> Removing '.$dir.'/'.$unit.' </p>';	////////DEBUG
-			rrmdir($dir.'/'.$unit);
+			if ($debug) echo '<p>-> Removing '.$dir.$unit.' </p>';	////////DEBUG
+			rrmdir($dir.$unit);
 		};
 	}
 	//exit;
