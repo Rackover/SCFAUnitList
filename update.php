@@ -1,40 +1,23 @@
-<script>
-
-		function hideUpdateMenu(){
-			document.getElementById('updateMenu').style.display = "none";
-		}
-
-</script>
-
-
-	<?php
-	/*
-	$var1 = ["AI", "Weapons"=>"aa", "Enhancements"];
-	$var2 = ["AI", "Weapons"=>3, "AD"];
+<?php
 	
-	var_dump(array_merge($var1, $var2));
+	$name = 'UNITDB_UPGRADE_SECRET';
 	
-	function array_merge_recursive_distinct ( array &$array1, array &$array2 )
-	{
-	  $merged = $array1;
-
-	  foreach ( $array2 as $key => &$value )
-	  {
-		if ( is_array ( $value ) && isset ( $merged [$key] ) && is_array ( $merged [$key] ) )
-		{
-		  $merged [$key] = array_merge_recursive_distinct ( $merged [$key], $value );
+	if (getenv($name) !== false){
+		
+		if ($_GET['token'] != $_ENV[$name]){
+			header('HTTP/1.1 403 Forbidden');
+			exit;
 		}
-		else
-		{
-		  $merged [$key] = $value;
-		}
-	  }
-
-	  return $merged;
+		
 	}
-
-	exit;
-	*/
+	
+	echo "
+	<script>
+		function hideUpdateMenu(){
+			document.getElementById('updateMenu').style.display = 'none';
+		}
+	</script>";
+	
 	
 	/*
 		({)(\s*(\s*'(\w|\<|\>|_| )*',*)+),\s*(})
