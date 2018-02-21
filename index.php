@@ -1993,7 +1993,7 @@
 					
 					//Generic
 					else if(is_array($settingValue)){
-						$settingValue = '<input style="width:100%; type="text" name="'.$settingName.'" value="'.implode(",",$settingValue).'"/>';
+						$settingValue = '<input style="width:100%;" type="text" name="'.$settingName.'" value="'.implode(",",$settingValue).'"/>';
 					}	
 					else{
 						$settingValue = '<input style="width:100%;text-align:center;" name="'.$settingName.'" type="text" value=\''.($settingValue).'\'/>';
