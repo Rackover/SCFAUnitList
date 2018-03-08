@@ -1,23 +1,40 @@
-<?php
-	
-	$name = 'UNITDB_UPGRADE_SECRET';
-	
-	if (getenv($name) !== false){
-		
-		if ($_GET['token'] != $_ENV[$name]){
-			header('HTTP/1.1 403 Forbidden');
-			exit;
-		}
-		
-	}
-	
-	echo "
-	<script>
+<script>
+
 		function hideUpdateMenu(){
-			document.getElementById('updateMenu').style.display = 'none';
+			document.getElementById('updateMenu').style.display = "none";
 		}
-	</script>";
+
+</script>
+
+
+	<?php
+	/*
+	$var1 = ["AI", "Weapons"=>"aa", "Enhancements"];
+	$var2 = ["AI", "Weapons"=>3, "AD"];
 	
+	var_dump(array_merge($var1, $var2));
+	
+	function array_merge_recursive_distinct ( array &$array1, array &$array2 )
+	{
+	  $merged = $array1;
+
+	  foreach ( $array2 as $key => &$value )
+	  {
+		if ( is_array ( $value ) && isset ( $merged [$key] ) && is_array ( $merged [$key] ) )
+		{
+		  $merged [$key] = array_merge_recursive_distinct ( $merged [$key], $value );
+		}
+		else
+		{
+		  $merged [$key] = $value;
+		}
+	  }
+
+	  return $merged;
+	}
+
+	exit;
+	*/
 	
 	/*
 		({)(\s*(\s*'(\w|\<|\>|_| )*',*)+),\s*(})
@@ -111,11 +128,12 @@
 		if ($zip->open(''.($toExtract[$h]).'') === TRUE) {	
 			if ($debug) echo '<p>-> Opened archive '.$toExtract[$h].' and found '.($zip->numFiles).' files. </p>';	////////DEBUG
 			for ($i=0; $i<$zip->numFiles;$i++) {
-				$name = $zip->statIndex($i)['name'];
+				$name = ($zip->statIndex($i)['name']);
 				//if ($debug) echo '<p>--> Found file '.$name.'</p>';	////////DEBUG
 				if (strpos($name, '.bp') !== false){
 					if ($debug) echo '<p>---> Extracting '.$name.' to DATA/_TEMP/'.$toExtract[$h].'/ ...</p>';	////////DEBUG
-					$success = $zip->extractTo('DATA/_TEMP/'.$toExtract[$h].'/',$name);	//Ex : extracts "units.scd.3599" to /DATA/GAMEDATA/_TEMP/units.scd.3599
+					$success = $zip->extractTo('DATA/_TEMP/'.$toExtract[$h].'/',($name));	//Ex : extracts "units.scd.3599" to /DATA/GAMEDATA/_TEMP/units.scd.3599
+					rename('DATA/_TEMP/'.$toExtract[$h].'/'.$name, 'DATA/_TEMP/'.$toExtract[$h].'/'.strtoupper($name));
 					if (!$success){
 						if ($debug) echo '<p>----> Extraction FAILED !</p>';	////////DEBUG
 						if ($debug) echo '<p>----> Error : '.error_get_last()['message'].'</p>';	////////DEBUG
@@ -183,6 +201,7 @@
 			$dirs = scandirVisible($realPath);
 			$thisPakUnitsList = [];
 			$totalFound = 0;
+			$notFoundAfterX = 0;
 			
 			foreach($dirs as $thisDirectory){	//For every subfolder of the PAK, like "/units" or "/projectiles"
 				
@@ -191,11 +210,14 @@
 				$units = 0;
 				
 				foreach($unitList as $thisUnit){ // For every unit inside this folder.
-					$thisUnit = strtoupper($thisUnit);
 					
 					$thisUnitDirectory = $realPath.'/'.$thisDirectory.'/'.$thisUnit;
-					$thisUnitFile = $thisUnitDirectory.'/'.$thisUnit.'_unit.bp';
+					
 					$thisMissileFile = $thisUnitDirectory.'/'.$thisUnit.'_proj.bp';
+					
+					$thisUnit = strtoupper($thisUnit);
+					$thisUnitFile = $thisUnitDirectory.'/'.$thisUnit.'_unit.bp';
+					
 					$proj = false;
 			
 					
@@ -207,6 +229,7 @@
 						$file = $thisUnitFile;
 					}
 					
+					echo '--> Adding unit '.$thisUnit.' from '.$file.'...<br>';
 					if (file_exists($file)){
 						$blueprint = file_get_contents($file);
 						$blueprint = makePhpArray(prepareForConversion($blueprint));
@@ -221,11 +244,15 @@
 						}
 						$thisSubfolderUnitsList[$thisUnit]= $blueprint;	//Key is ID
 						$units++;
-						//echo '--> Found unit '.$thisUnit.'<br>';
+					}
+					else{
+						if ($debug) echo '---> File not found!<br>';
+						$notFoundAfterX++;
 					}
 					
 				}
 				if ($debug) echo '<p>--> Found '.$units.' units in directory '.$thisDirectory.'</p>';	////////DEBUG
+				if ($debug) echo '<p>--> Could not find '.$notFoundAfterX.' units</p>';	////////DEBUG
 				$totalFound += $units;
 				$thisPakUnitsList = array_merge($thisPakUnitsList, $thisSubfolderUnitsList);
 			}
@@ -272,12 +299,12 @@
 					}
 					
 				}
-				if ($debug) echo '<p>--> Found '.$foundLines.' lines in directory '.$thisDirectory.'</p>';	////////DEBUG
+				if ($debug) echo '<p>--> Found '.$foundLines.' locfiles in directory '.$thisDirectory.'</p>';	////////DEBUG
 				$totalLines += $foundLines;
 				$thisPakLangs = array_merge($thisPakLangs, $thisSubfolderLocList);
 			}
 			
-			if ($debug) echo '<p>-> Total units found for LOC '.$realPath.' : '.$totalLines.' </p>';	////////DEBUG
+			if ($debug) echo '<p>-> Total files found for LOC '.$realPath.' : '.$totalLines.' </p>';	////////DEBUG
 			$finalLangs = array_merge($finalLangs, $thisPakLangs);
 			
 		}
@@ -301,6 +328,7 @@
 	file_put_contents('DATA/LANG.JSON', json_encode($finalLangs));
 	
 	//STEP 4 : CLEANING UP
+	
 	if ($debug) echo '<p>------------ </p>';	////////DEBUG
 	if ($debug) echo '<p>STEP 4 ----- </p>';	////////DEBUG
 	
@@ -313,6 +341,7 @@
 			rrmdir($dir.$unit);
 		};
 	}
+	
 	//exit;
 	
 	unlink("CONFIG/UPDATE.TMP");
