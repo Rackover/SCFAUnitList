@@ -1232,6 +1232,7 @@
 										if (property_exists($thisEnhancement, 'MaintenanceConsumptionPerSecondMass')) $mass -= $thisEnhancement->MaintenanceConsumptionPerSecondMass;
 										if (property_exists($thisEnhancement, 'MaintenanceConsumptionPerSecondEnergy')) $nrg -= $thisEnhancement->MaintenanceConsumptionPerSecondEnergy;
 										if (property_exists($thisEnhancement, 'BuildRate')) $build += $thisEnhancement->BuildRate;
+										if (property_exists($thisEnhancement, 'ProductionPerSecondEnergy')) $nrg += $thisEnhancement->ProductionPerSecondEnergy;
 										if (property_exists($thisEnhancement, 'ProductionPerSecondMass')) $mass += $thisEnhancement->ProductionPerSecondMass;
 										if (property_exists($thisEnhancement, 'BuildRate')) $nrg += $thisEnhancement->BuildRate;
 										
@@ -1275,7 +1276,13 @@
 												'Prerequisite',
 												'OwnerShieldMesh',
 												'ImpactEffects',
-												'ShieldEnergyDrainRechargeTime'];
+												'ShieldEnergyDrainRechargeTime',
+												'ImpactMesh',
+												'Mesh',
+												'MeshZ',
+												'ShieldEnhancementNumber',
+												'ShieldVerticalOffset',
+												'ShieldSpillOverDamageMod'];
 								foreach($thisEnhancement as $propName=>$property){
 									if (!in_array($propName, $blacklist)){
 										echo '
