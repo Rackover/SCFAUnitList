@@ -753,10 +753,9 @@
 				//VETERANCY
 				else if (	$thisComponent == "Veteran" && 
 							property_exists($thisUnit, 'Weapon') && 
-							(sizeOf($thisUnit->Weapon) > 1 || (property_exists(array_values(get_object_vars ($thisUnit->Weapon))[0], "WeaponCategory") && 
+							(count((array)$thisUnit->Weapon) > 1 || (property_exists(array_values(get_object_vars ($thisUnit->Weapon))[0], "WeaponCategory") && 
 																array_values(get_object_vars ($thisUnit->Weapon))[0]->WeaponCategory != "Death"))){
-								
-								
+										
 					///////////
 					/// If this is a commander, display the custom veterancy system
 					///////////
@@ -2071,6 +2070,13 @@
 				$color['bright'] = "#C8F7C5";
 				$color['dark'] = "#004d00";
 				$color['hue'] = 150;
+				break;
+				
+			case "Nomads" :
+				$color['normal'] = "#E57E00";
+				$color['bright'] = "#FFBA66";
+				$color['dark'] = "#7F4600";
+				$color['hue'] = 20;
 				break;
 		}
 		return $color[$tint];
