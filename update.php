@@ -106,31 +106,35 @@
 		}
 		
 		
-		$neededFiles = array("units.nx2", "projectiles.nx2", "loc.nx2");
+		$neededFiles = array(
+			"units.nx2"=>"DATA/GAMEDATA/", 
+			"projectiles.nx2"=>"DATA/GAMEDATA/", 
+			"loc.nx2"=>"DATA/LOC/"
+		); 
+		
 		$jsonString = file_get_contents($url);
 		$json = json_decode($jsonString, true);
 		$files = $json["data"];
-		$path = "DATA/GAMEDATA/";
 		
 		foreach($files as $thisFile){
 			$name = $thisFile["attributes"]["name"];
 			$md5 = $thisFile["attributes"]["md5"];
 			$url = $thisFile["attributes"]["url"];
-			
-			if (in_array($name, $neededFiles)){
-				if ($debug) echo "Downloading ".$name." from ".$url." [".$md5."]<br>";
-				
+			$neededFilesKeys = array_keys($neededFiles);
+			if (in_array($name, $neededFilesKeys)){
+				$path = $neededFiles[$name];
+				if ($debug) echo "Downloading ".$name." from ".$url." to ".$path." [".$md5."]<br>";
 				unlink($path.$name);
 				file_put_contents($path.$name, fopen($url, 'r'));
 				
 				$sum = md5_file($path.$name);
 				if ($sum != $md5){
-					if ($debug) echo "=> MD5 MISMATCH !<br>";
-					if ($debug) echo "==> Exiting.<br>";
+					if ($debug) echo "-> MD5 MISMATCH !<br>";
+					if ($debug) echo "--> Exiting.<br>";
 					exit;
 				}
 				else{
-					if ($debug) echo "=> MD5 OK !";
+					if ($debug) echo "=> MD5 OK !<br>";
 				}
 			}
 		}
