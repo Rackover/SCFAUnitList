@@ -250,7 +250,7 @@
 		}
 	}
 	
-	function displayUnitlistUnit($thisUnit, $userSettings, $armyName, $dataLoc, $onCard=false){
+	function displayUnitlistUnit($thisUnit, $userSettings, $techName, $armyName, $dataLoc, $onCard=false){
 		/// We will only be displaying this unit if it has an ID
 		if (property_exists($thisUnit, 'Id')){
 			$id = $thisUnit->Id;
@@ -409,7 +409,7 @@
 				continue;
 			}
 			foreach($thisArmy as $thisUnit){
-				displayUnitlistUnit($thisUnit, $userSettings, $armyName, $dataLoc);
+				displayUnitlistUnit($thisUnit, $userSettings, $techName, $armyName, $dataLoc);
 			}
 			echo '</div>';
 		}
@@ -515,7 +515,7 @@
 				}
 				foreach($buildable as $buildableUnit){
 					
-					displayUnitlistUnit($buildableUnit, $userSettings, formatFaction($buildableUnit->General->FactionName), $dataLoc, true);
+					displayUnitlistUnit($buildableUnit, $userSettings, getTech($buildableUnit), formatFaction($buildableUnit->General->FactionName), $dataLoc, true);
 				}
 				
 				if ($userSettings['spookyMode']){
@@ -1329,7 +1329,7 @@
 		}					
 		echo '<div style="position:relative;">
 				<div style="margin-right:27px;">
-					'.getUnitTitle($thisUnit, $dataLoc, $userSettings['lang']).'
+					'.getUnitTitle($thisUnit, $dataLoc, $lang).'
 				</div>
 				<button class="comparatorRemoveButton"
 						onClick="removeUnitFromComparator(\''.($thisUnit->Id).'\')">
@@ -1503,10 +1503,10 @@
 		}
 	}
 	
-	function getBasicUnitInfo($thisUnit, $dataLoc){
+	function getBasicUnitInfo($thisUnit, $dataLoc, $userSettings){
 		/// Filling up basic unit information. **EVERY BLUEPRINT** normally has these infos.
 		return array(
-					'Description' => getDescription($thisUnit, $dataLoc),
+					'Description' => getDescription($thisUnit, $dataLoc, $userSettings),
 					'Health'=>$thisUnit->Defense->Health,
 					'Regen'=>$thisUnit->Defense->RegenRate,
 					'Economy'=>$thisUnit->Economy,
@@ -1517,7 +1517,7 @@
 					'Categories'=>$thisUnit->Categories);
 	}
 	
-	function getDescription ($thisUnit, $dataLoc){
+	function getDescription ($thisUnit, $dataLoc, $userSettings){
 		if (property_exists($thisUnit, 'Description')){
 			$description = ($thisUnit->Description);
 			$matches = [];
@@ -1526,7 +1526,7 @@
 				$line = str_replace('<LOC ', '', $line);
 				$line = str_replace('>', '', $line);
 				$thisLang = $dataLoc[$userSettings['lang']];
-				if (array_key_exists($line, $thisLang)){
+				if (is_array($thisLang) && array_key_exists($line, $thisLang)){
 					$description = $thisLang[$line];
 				}
 			}

@@ -1,4 +1,5 @@
 <?php 
+
 	include('./RES/SCRIPTS/functions.php');
 
 	///////////////////////////////////////
@@ -135,7 +136,7 @@
 			foreach($toCompare as $thisUnit){
 				
 				/// Filling up basic unit information. **EVERY BLUEPRINT** normally has these infos.
-				$info = getBasicUnitInfo($thisUnit, $data['localization']);
+				$info = getBasicUnitInfo($thisUnit, $data['localization'], $userSettings);
 				
 				/// The only hardcoded style info should/will be the faction color, which is dynamically decided in PHP depending on the number and type of factions.
 				echo '<div class="unitCompared"
