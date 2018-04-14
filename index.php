@@ -1,5 +1,4 @@
 <?php 
-
 	include('./RES/SCRIPTS/functions.php');
 
 	///////////////////////////////////////
@@ -85,6 +84,17 @@
 <?php
 	
 	$data = getGameData();
+	
+	/// If invalid or unsuitable game data, we shall exit with an error display.
+	if ($data===false || !array_key_exists("missiles", $data) || !array_key_exists("units", $data) || !array_key_exists("localization", $data)){
+		print_r('
+			<p style="color:white;">
+				Invalid or corrupt JSON blueprint data. Please run the update again.
+			</p>
+			');
+		echo "</body>";
+		exit;
+	}
 	$dataUnits = $data['units'];		/// List of units, each one as a JSON object
 	$dataMissiles = $data['missiles'];	/// List of missiles, each one as a JSON object
 	$dataLoc = $data['localization'];	

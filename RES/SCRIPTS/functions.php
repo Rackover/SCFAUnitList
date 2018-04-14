@@ -1569,6 +1569,10 @@
 	}
 	
 	function getGameData(){
+		if (!file_exists("DATA/FALLBACK.JSON")){
+			return false;
+		}
+		
 		$dataString = file_get_contents("DATA/FALLBACK.JSON");
 		$dataFull = json_decode($dataString);
 		$dataUnits = [];
