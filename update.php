@@ -1,40 +1,16 @@
-<script>
-
-		function hideUpdateMenu(){
-			document.getElementById('updateMenu').style.display = "none";
-		}
-
-</script>
-
-
-	<?php
-	/*
-	$var1 = ["AI", "Weapons"=>"aa", "Enhancements"];
-	$var2 = ["AI", "Weapons"=>3, "AD"];
+<?php
 	
-	var_dump(array_merge($var1, $var2));
+	/// If this environment variable exist, it should be the same as the GET_ key provided
+	$keyName = 'UNITDB_UPGRADE_SECRET';
 	
-	function array_merge_recursive_distinct ( array &$array1, array &$array2 )
-	{
-	  $merged = $array1;
-
-	  foreach ( $array2 as $key => &$value )
-	  {
-		if ( is_array ( $value ) && isset ( $merged [$key] ) && is_array ( $merged [$key] ) )
-		{
-		  $merged [$key] = array_merge_recursive_distinct ( $merged [$key], $value );
+	if (getenv($keyName) !== false){
+		
+		if ($_GET['token'] != $_ENV[$keyName]){
+			header('HTTP/1.1 403 Forbidden');
+			exit;
 		}
-		else
-		{
-		  $merged [$key] = $value;
-		}
-	  }
-
-	  return $merged;
+		
 	}
-
-	exit;
-	*/
 	
 	/*
 		({)(\s*(\s*'(\w|\<|\>|_| )*',*)+),\s*(})
@@ -74,8 +50,7 @@
 		$string_bp = preg_replace('/#(.*)/', "", $string_bp);
 		$string_bp = str_replace("'", '"', $string_bp);
 		$string_bp = str_replace('Sound', '', $string_bp);
-		//$string_bp = str_replace('UnitBlueprint', '', $string_bp);
-		//$string_bp = preg_replace ('/(<LOC.*>+)/', '', $string_bp);
+		
 		return $string_bp;
 	}
 	
@@ -98,12 +73,6 @@
 	}
 	
 	
-	//echo '<style>html{background-color:white;}</style><div>';
-	
-	//	file_put_contents('test.json', json_encode(makePhpArray(prepareForConversion(file_get_contents('DATA/GAMEDATA/URL0001_unit.bp')))));
-		//			exit;
-	
-	
 	//GET EXTRACTION INFO AND PREPARE FALLBACK
 	$toExtract = json_decode(file_get_contents('CONFIG/DATAFILES.JSON'));
 	$toExtractLoc = json_decode(file_get_contents('CONFIG/LOCFILES.JSON'));
@@ -116,7 +85,58 @@
 	}
 	
 	file_put_contents("CONFIG/UPDATE.TMP", "If this file is present, either the database is updating or the last update failed.");	
-	set_time_limit(120);
+		
+	// STEP 0 : DOWNLOAD DATA IF NEED
+	
+	if ($debug) echo '<p>STEP 0 ----- </p>';	////////DEBUG
+	if (isset($_GET['version']) && $_GET['version'] != "local"){
+	
+		$version = $_GET['version'];
+		$urlVar = "UNITDB_FILES_API_URL_FORMAT";
+		$apiUrl = "https://api.faforever.com/featuredMods/0/files/%s";
+		
+		if (getenv($urlVar) !== false){
+			$apiUrl = $_ENV[$urlVar];
+		}
+		
+		$url = sprintf($apiUrl, $version);
+		
+		if ($debug){
+			echo "<p>Using url ".$url."</p>";
+		}
+		
+		
+		$neededFiles = array("units.nx2", "projectiles.nx2", "loc.nx2");
+		$jsonString = file_get_contents($url);
+		$json = json_decode($jsonString, true);
+		$files = $json["data"];
+		$path = "DATA/GAMEDATA/";
+		
+		foreach($files as $thisFile){
+			$name = $thisFile["attributes"]["name"];
+			$md5 = $thisFile["attributes"]["md5"];
+			$url = $thisFile["attributes"]["url"];
+			
+			if (in_array($name, $neededFiles)){
+				if ($debug) echo "Downloading ".$name." from ".$url." [".$md5."]<br>";
+				
+				unlink($path.$name);
+				file_put_contents($path.$name, fopen($url, 'r'));
+				
+				$sum = md5_file($path.$name);
+				if ($sum != $md5){
+					if ($debug) echo "=> MD5 MISMATCH !<br>";
+					if ($debug) echo "==> Exiting.<br>";
+					exit;
+				}
+				else{
+					if ($debug) echo "=> MD5 OK !";
+				}
+			}
+		}
+	}
+	
+	
 	
 	//STEP 1 : UNZIP DATA
 	
@@ -353,7 +373,13 @@
 	
 	?>
 
-	
+	<script>
+
+		function hideUpdateMenu(){
+			document.getElementById('updateMenu').style.display = "none";
+		}
+
+</script>
 <div style="
 		z-index:10;
 		position:fixed;
