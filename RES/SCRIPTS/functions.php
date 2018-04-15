@@ -1,5 +1,4 @@
-
-	<?php
+<?php
 	
 	///////////////////////////////////////
 	///									///
@@ -855,7 +854,7 @@
 						<div class="littleInfo" style="width:50%;">
 							WeaponCategory
 						</div>
-						<div class="littleInfoVar" style="color:'.getWeaponCategoryColor.';width:50%;text-align:left;">
+						<div class="littleInfoVar" style="color:'.getWeaponCategoryColor($thisWeapon->WeaponCategory).';width:50%;text-align:left;">
 							'.($thisWeapon->WeaponCategory).'
 						</div>
 					</div>';
