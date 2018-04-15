@@ -50,18 +50,6 @@
 	
 	//END OF SPECIFIC SETTINGS LOADING
 	
-	
-	///////////////
-	///	URL CLEANING
-	/// Sometimes the URL can get multiple GET arguments stuck in it, because of website navigation. We're clearing the URL and putting it in a $url variable to use it later, especially in javascript code.
-	//////////////
-	
-	$cleaned = makeCleanURL();	/// Makes clean url from $_SERVER variables
-	$url = $cleaned['url'];
-	$s = $cleaned['separator']; /// "GET" arguments separator
-	
-	/// End of URL Cleaning
-	
 	/// Now everything is settled, we can start displaying stuff
 	
 ?>
@@ -319,10 +307,16 @@
 			</div>';
 		
 		/// License! The most important part.
-		echo '
+		echo '<p>
 				<a href="LICENSE" style="color:white;font-size:10px;">
 					Made by rackover@racknet.noip.me - 2018
-				</a>';
+				</a>
+			</p>
+			<p>
+				<a style="color:white;font-size:10px;" href="https://github.com/FAForever/UnitDB">
+					See the source code on github...
+				</a>
+			</p>';
 		
 		
 	} 
@@ -343,7 +337,7 @@
 			Settings
 		</div>
 		<div class="flexRows settingsMenuList">
-			<form action="<?php echo $url;?>" method="POST" name="settingsMod">
+			<form method="POST" name="settingsMod">
 			<?php 
 				
 				displaySettingsMenu($defaultSettings, $userSettings, $data['localization']);

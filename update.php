@@ -1,5 +1,7 @@
 <?php
 	
+	
+
 	/// If this environment variable exist, it should be the same as the GET_ key provided
 	$keyName = 'UNITDB_UPGRADE_SECRET';
 	
@@ -37,7 +39,7 @@
 			}
 			
 			// echo '<p>--> Removing source "'.$src.'" </p>';	////////DEBUG
-			rmdir($src);
+			if(file_exists($src)) rmdir($src);
 		}
 	}
 	
@@ -65,7 +67,6 @@
 			$name = $content[0];
 			$translation = $content[1];
 			$translation = preg_replace("/(--\[\[(.*)--\]\]+)/", "", $translation);
-			//$translation = str_replace('"', '', $translation);
 			
 			$finalLoc[$name] = $translation;
 		}
@@ -81,6 +82,9 @@
 	
 	if (isset($_GET['debug'])){
 		$debug = $_GET['debug'];
+		error_reporting(E_ALL);
+		ini_set('display_errors', 1);
+		echo "<div> UNIT DB UPDATER VERSION 15.04.2018 </div>";
 		echo '<div style="color:orange;background-color:#111111;font-family:Consolas;padding:8px;">';
 	}
 	
@@ -124,7 +128,8 @@
 			if (in_array($name, $neededFilesKeys)){
 				$path = $neededFiles[$name];
 				if ($debug) echo "Downloading ".$name." from ".$url." to ".$path." [".$md5."]<br>";
-				unlink($path.$name);
+				if (file_exists($path.$name)) unlink($path.$name);
+				if (!file_exists($path)) mkdir($path, 0777, true);
 				file_put_contents($path.$name, fopen($url, 'r'));
 				
 				$sum = md5_file($path.$name);
@@ -151,13 +156,20 @@
 		$zip = new ZipArchive;
 		if ($zip->open(''.($toExtract[$h]).'') === TRUE) {	
 			if ($debug) echo '<p>-> Opened archive '.$toExtract[$h].' and found '.($zip->numFiles).' files. </p>';	////////DEBUG
+			
 			for ($i=0; $i<$zip->numFiles;$i++) {
 				$name = ($zip->statIndex($i)['name']);
-				//if ($debug) echo '<p>--> Found file '.$name.'</p>';	////////DEBUG
-				if (strpos($name, '.bp') !== false){
+				if ($debug) echo '<p>--> Found file '.$name.'</p>';	////////DEBUG
+				if (strpos(basename($name), '.bp') !== false){
 					if ($debug) echo '<p>---> Extracting '.$name.' to DATA/_TEMP/'.$toExtract[$h].'/ ...</p>';	////////DEBUG
-					$success = $zip->extractTo('DATA/_TEMP/'.$toExtract[$h].'/',($name));	//Ex : extracts "units.scd.3599" to /DATA/GAMEDATA/_TEMP/units.scd.3599
-					rename('DATA/_TEMP/'.$toExtract[$h].'/'.$name, 'DATA/_TEMP/'.$toExtract[$h].'/'.strtoupper($name));
+					$success = $zip->extractTo('DATA/_TEMP/'.$toExtract[$h].'/',($name));    //Ex : extracts "units.scd.3599" to /DATA/GAMEDATA/_TEMP/units.scd.3599
+					
+					// Let's assure the unit blueprint has the right casing
+					$basename = basename('DATA/_TEMP/'.$toExtract[$h].'/'.$name);
+					$path = str_replace($basename, "", 'DATA/_TEMP/'.$toExtract[$h].'/'.$name);
+					if ($debug) echo '<p>---> Renaming '.$path.$basename. " to ". $path.strtoupper($basename).'</p>';	////////DEBUG
+					rename($path.$basename, $path.strtoupper($basename));
+					
 					if (!$success){
 						if ($debug) echo '<p>----> Extraction FAILED !</p>';	////////DEBUG
 						if ($debug) echo '<p>----> Error : '.error_get_last()['message'].'</p>';	////////DEBUG
@@ -208,6 +220,7 @@
 	//STEP 2 : MERGING FILES
 	if ($debug) echo '<p>------------ </p>';	////////DEBUG
 	if ($debug) echo '<p>STEP 2 ----- </p>';	////////DEBUG
+	
 	$idsUnitsList = [];
 	$finalLangs = [];
 	$dir = 'DATA/_TEMP/';
@@ -237,10 +250,10 @@
 					
 					$thisUnitDirectory = $realPath.'/'.$thisDirectory.'/'.$thisUnit;
 					
-					$thisMissileFile = $thisUnitDirectory.'/'.$thisUnit.'_proj.bp';
+					$thisMissileFile = $thisUnitDirectory.'/'.strtoupper($thisUnit).'_PROJ.BP';
 					
 					$thisUnit = strtoupper($thisUnit);
-					$thisUnitFile = $thisUnitDirectory.'/'.$thisUnit.'_unit.bp';
+					$thisUnitFile = $thisUnitDirectory.'/'.strtoupper($thisUnit).'_UNIT.BP';
 					
 					$proj = false;
 			
@@ -253,7 +266,8 @@
 						$file = $thisUnitFile;
 					}
 					
-					echo '--> Adding unit '.$thisUnit.' from '.$file.'...<br>';
+					if ($debug) echo '--> Adding unit '.$thisUnit.' from '.$file.'...<br>';
+					
 					if (file_exists($file)){
 						$blueprint = file_get_contents($file);
 						$blueprint = makePhpArray(prepareForConversion($blueprint));
@@ -365,8 +379,6 @@
 			rrmdir($dir.$unit);
 		};
 	}
-	
-	//exit;
 	
 	unlink("CONFIG/UPDATE.TMP");
 	
