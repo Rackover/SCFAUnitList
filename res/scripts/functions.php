@@ -753,25 +753,65 @@
 			
 			/// Count duplicate weapons so we can display them as "x2"  "x3"  etc
 			$alreadyDisplayed = array();	// Used to not display dupes twice
-			$weaponsOccurences = array();	// Used to count amount of same weapons
-			foreach($weapons as $thisWeapon){
-				if (!array_key_exists($thisWeapon->DisplayName, $weaponsOccurences)){
-					$weaponsOccurences [$thisWeapon->DisplayName] = 0;
+			$registeredWeapons = array();	// Used to count amount of same weapons
+			foreach($weapons as $property=>$thisWeapon){
+				$found = false;
+				foreach($registeredWeapons as $key=>$thisRegisteredWeapon){
+					if (sameWeapon($thisWeapon, $thisRegisteredWeapon)){
+						$thisRegisteredWeapon = (array)$thisRegisteredWeapon;
+						if (!array_key_exists("Occurences", $thisWeapon)){
+							$thisRegisteredWeapon ["Occurences"] = 2;
+						}
+						else{
+							$thisRegisteredWeapon ["Occurences"]++;
+						}
+						$thisRegisteredWeapon = (object)$thisRegisteredWeapon;
+						$registeredWeapons[$key] = $thisRegisteredWeapon;
+						$found = true;
+					}
 				}
-				$weaponsOccurences [$thisWeapon->DisplayName] ++;
-				$alreadyDisplayed [$thisWeapon->DisplayName] = false;
+				if (!$found){
+					$thisWeapon = (array)$thisWeapon;
+					$thisWeapon ["Occurences"] = 1;
+					$thisWeapon = (object)$thisWeapon;
+					$registeredWeapons[]=	$thisWeapon;
+				}
 			}
+			$weapons = $registeredWeapons;
 			
 			/// For each weapon...
 			foreach($weapons as $thisWeapon){
-				if (!$alreadyDisplayed [$thisWeapon->DisplayName]){
-					displayWeapon($thisWeapon, $info, $thisUnit, $userSettings, $dataMissiles, $weaponsOccurences [$thisWeapon->DisplayName]);
-					$alreadyDisplayed [$thisWeapon->DisplayName] = true;
+				$skip = false;
+				foreach($alreadyDisplayed as $alreadyDisplayedWeapon){
+					if (sameWeapon($alreadyDisplayedWeapon, $thisWeapon)){
+						$skip = true;
+						break;
+					}
+				}
+				if (!$skip){
+					displayWeapon($thisWeapon, $info, $thisUnit, $userSettings, $dataMissiles, $thisWeapon->Occurences);
+					$alreadyDisplayed [] = $thisWeapon;
 				}
 			}
 			echo '	</div>';
 		echo '	</div>';
 		}
+	}
+	
+	function sameWeapon($wep1, $wep2){
+		// Checks if two weapons are the same, omitting Blueprint->Json artifacts (PropertyXXX, ...) by checking only some important values
+		$valuesToCheck = array('DisplayName', 'Damage', 'RateOfFire', 'DamageType');
+		$same = true;
+		foreach($valuesToCheck as $thisProperty){
+			if (
+				!property_exists($wep1, $thisProperty) ||
+				!property_exists($wep2, $thisProperty) ||
+				$wep1->$thisProperty != $wep2->$thisProperty
+				){
+				$same = false;
+			}
+		}
+		return $same;		
 	}
 	
 	function displayWeapon($thisWeapon, $info, $thisUnit, $userSettings, $dataMissiles, $occurences=1){
