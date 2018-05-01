@@ -16,7 +16,7 @@ PHP 5.6 or 7
 ```
 If you have a LAMP server, it's more than enough.
 
-For up-to-date unit data you will have to provide your own data (game files .SCD or .NX2). More info in the "Installing" part of this readme.
+For up-to-date unit data you will have to provide your own data (game files .scd or .nx2). More info in the "Installing" part of this readme.
 
 ####     Clientside :
 
@@ -34,11 +34,11 @@ With a LAMP server it'll be something like :
 ```
 You can put them pretty much wherever you want, as most of the code uses relative paths.
 
-Once you've done that, you can edit the `CONFIG/DATAFILES.JSON` file to link the database to the game files. By default, the game is linked to .3599 files in the `DATA/GAMEDATA` folder. You can add more files in the list, and they will be loaded in the order specified. Two things to note here :
+Once you've done that, you can edit the `config/datafiles.json` file to link the database to the game files. By default, the game is linked to .3599 files in the `data/gamedata` folder. You can add more files in the list, and they will be loaded in the order specified. Two things to note here :
 * Keep in mind that uncompressing data and analyzing it will be done in PHP, therefore these operations must not take more than *120 seconds* combined : else it will break and exit before writing any change. 
 * You should always keep the .3599 file to be loaded somewhere (in first) as it is very complete, and if the data you load after it lacks unit, the unitDB will fall back to 3599 files. If you don't mount these files before anything else, stuff will probably be missing. 
 
-`CONFIG/LOCFILES.JSON` works the same way, but for localization files (.scd).
+`config/locfiles.json` works the same way, but for localization files (.scd).
 
 Once you're done editing and tweaking stuff, run `update.php` in your browser (or `update.php?debug=1) and everything should be fine.
 
@@ -57,6 +57,7 @@ Thanks to :
   Exotic-retard, 
   Petric, 
   MrShiny1,
+  Apofenas,
   and Zook for general help and feedback
 
 ## License
